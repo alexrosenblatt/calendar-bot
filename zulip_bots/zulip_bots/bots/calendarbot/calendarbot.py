@@ -57,7 +57,8 @@ class CalendarBotHandler(object):
         event.end = meeting_datetime+timedelta(minutes=meeting_length)
         
         #create attendee list
-        map(lambda x: event.add_attendee(x),invitees )
+        for invitee_email in invitees:
+            event.add_attendee(invitee_email)
 
         cal.events.add(event)
         with open('my.ics', 'w') as my_file:
