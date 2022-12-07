@@ -24,8 +24,10 @@ class CalendarBotHandler(object):
     def handle_message(self, message:dict, bot_handler):
         cal = Calendar()
         message_content = message['content'].lower()
+        
+        #casematch is overkill for now, but i suspect future cases to be added
+        #splits meet command and datetime input
         match message_content.split():
-            #splits meet command and datetime input
             case ['meet',datetime_input,*ignore]:
                 meeting_details = self.parse_meeting_details(message,datetime_input)
                 self.create_calendar_event(meeting_details,cal)
@@ -56,7 +58,6 @@ class CalendarBotHandler(object):
     def create_calendar_event(self,meeting_details: tuple[int,list,datetime,int,dict],cal):    
         
         #todo maybe convert the below to named_tuples or a dataclass?
-
         sender_id,invitees,meeting_datetime,meeting_length,message = meeting_details
         
         #append meeting data to Event object
@@ -75,6 +76,7 @@ class CalendarBotHandler(object):
 
         # add event to "calendar". Calendar is the top level object used to create the .ics file
         cal.events.add(event)
+
         # TODO figure out how to make this work
         # with TemporaryFile(mode='r+',prefix='meeting',suffix='.ics') as my_file:
         #     my_file.writelines(cal.serialize_iter())
@@ -84,6 +86,7 @@ class CalendarBotHandler(object):
     def send_event_file(self, bot_handler, cal, message):
         with open('my.ics', 'r+') as my_file:
             my_file.writelines(cal.serialize_iter())
+
         #reopening due to some race condition that affect upload files
         with open('my.ics', 'r+') as my_file:    
             result = bot_handler.upload_file(my_file)
