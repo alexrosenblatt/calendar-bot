@@ -2,6 +2,8 @@ from __future__ import print_function
 
 import datetime
 import os.path
+from datetime import datetime
+
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -9,6 +11,7 @@ from google.oauth2 import service_account
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from dataclasses import dataclass
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
@@ -16,10 +19,10 @@ SCOPES = ["https://www.googleapis.com/auth/calendar"]
 from google.oauth2 import service_account
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
-SERVICE_ACCOUNT_FILE = "python-zulip-api/zulip_bots/zulip_bots/bots/calendarbot/oauthcreds2.json"
+SERVICE_ACCOUNT_FILE = "python-zulip-api/zulip_bots/zulip_bots/bots/calendarbot/creds.json"
 
 
-def send_google_invite(meeting_details):
+def send_google_invite(meeting_details=None):
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
@@ -38,10 +41,9 @@ def send_google_invite(meeting_details):
             token.write(creds.to_json())
 
     try:
-        service = build("calendar", "v3", credentials=creds)
+        calendar = build("calendar", "v3", credentials=creds)
 
         # Call the Calendar API
-        now = datetime.datetime.utcnow().isoformat() + "Z"  # 'Z' indicates UTC time
         event = {
             "summary": "Bot Test",
             "location": "800 Howard St., San Francisco, CA 94103",
@@ -68,7 +70,7 @@ def send_google_invite(meeting_details):
         }
 
         event = (
-            service.events()
+            calendar.events()
             .insert(
                 calendarId="5edeaa7e7808543c6f5b1f64433d135e618cc3cad5d2c2f2df2b452c81957459@group.calendar.google.com",
                 body=event,
@@ -83,4 +85,4 @@ def send_google_invite(meeting_details):
 
 
 if __name__ == "__main__":
-    main()
+    send_google_invite()
