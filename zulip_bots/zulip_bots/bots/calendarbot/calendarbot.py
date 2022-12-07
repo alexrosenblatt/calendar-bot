@@ -15,7 +15,7 @@ bot_email = 'test-bot-bot@recurse.zulipchat.com'
 #create calendar_object
 
 @dataclass
-class meeting_details:
+class MeetingDetails:
     sender_id: int
     invitees: list
     meeting_start: datetime
@@ -66,7 +66,7 @@ class CalendarBotHandler(object):
         response = "Sorry - I didn't understand that. Please use syntax 'Meet [<time:] [duration in minutes, default is 30] '"
         self.bot_handler.send_reply(self.message,response)
 
-    def parse_meeting_details(self,datetime_input,length_minutes=30) -> meeting_details:
+    def parse_meeting_details(self,datetime_input,length_minutes=30) -> MeetingDetails:
         #converts Zulip global timepicker into a python datetime object
         print(datetime_input)
         meeting_start = datetime.fromisoformat(datetime_input.replace('<time:','').replace('>',''))
@@ -80,7 +80,7 @@ class CalendarBotHandler(object):
         recipients = list(map(lambda recipient: (recipient['id'],recipient['email']) , self.message['display_recipient']))
         invitees = [recipient[1] for recipient in recipients if (recipient[1] != bot_email)]
         
-        meeting = meeting_details(sender_id=sender_id,
+        meeting = MeetingDetails(sender_id=sender_id,
                 invitees=invitees,
                 meeting_start=meeting_start,
                 meeting_end=meeting_end,
@@ -89,7 +89,7 @@ class CalendarBotHandler(object):
 
         return meeting
     
-    def create_calendar_event(self,meeting: meeting_details,cal):    
+    def create_calendar_event(self,meeting: MeetingDetails,cal):    
         
         #append meeting data to Event object
    
