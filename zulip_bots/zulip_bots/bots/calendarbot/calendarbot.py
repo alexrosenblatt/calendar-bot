@@ -26,9 +26,10 @@ class CalendarBotHandler(object):
         message_content = message['content'].lower()
         match message_content.split():
             #splits meet command and datetime input
-            case ['meet',datetime_input]:
-                self.create_calendar_event(self.parse_meeting_details(message,datetime_input),bot_handler,cal)
-            
+            case ['meet',datetime_input,*ignore]:
+                meeting_details = self.parse_meeting_details(message,datetime_input)
+                self.create_calendar_event(meeting_details,cal)
+                self.send_event_file(bot_handler, cal, message)
             case _:
                 self.input_error(message,bot_handler)
 
@@ -39,10 +40,11 @@ class CalendarBotHandler(object):
         bot_handler.send_reply(message, response)
 
     def parse_meeting_details(self,message,datetime_input) -> tuple[int,list,datetime,int,dict]:
+        
         #converts Zulip global timepicker into a python datetime object
         meeting_datetime = datetime.fromisoformat(datetime_input.replace('<time:','').replace('>',''))
         sender_id = message['sender_id']
-        # sender_email = message['email']
+        
         meeting_length = 30 #TODO make this selectable
 
         # get recipients from message json and remove sender and bot
@@ -51,27 +53,38 @@ class CalendarBotHandler(object):
         
         return sender_id,invitees,meeting_datetime,meeting_length,message
     
-    def create_calendar_event(self,meeting_details: tuple[int,list,datetime,int,dict],bot_handler,cal):
+    def create_calendar_event(self,meeting_details: tuple[int,list,datetime,int,dict],cal):    
+        
+        #todo maybe convert the below to named_tuples or a dataclass?
+
         sender_id,invitees,meeting_datetime,meeting_length,message = meeting_details
+        
+        #append meeting data to Event object
         event = Event()
         event.name = "Fun meeting"
+        event.description = "Wowzers - this meeting is prettttty dope."
         event.begin = meeting_datetime
         event.end = meeting_datetime+timedelta(minutes=meeting_length)
         
         #create attendee list
         for invitee_email in invitees:
             event.add_attendee(Attendee(invitee_email))
+            
+            #test attendee
             event.add_attendee(Attendee('sophieduba@gmail.com'))
 
+        # add event to "calendar". Calendar is the top level object used to create the .ics file
         cal.events.add(event)
         # TODO figure out how to make this work
         # with TemporaryFile(mode='r+',prefix='meeting',suffix='.ics') as my_file:
         #     my_file.writelines(cal.serialize_iter())
         #     print(bot_handler.upload_file(my_file))
     
+
+    def send_event_file(self, bot_handler, cal, message):
         with open('my.ics', 'r+') as my_file:
             my_file.writelines(cal.serialize_iter())
-        #reopening due to some race condition that correct uploads
+        #reopening due to some race condition that affect upload files
         with open('my.ics', 'r+') as my_file:    
             result = bot_handler.upload_file(my_file)
             response = f"[Meeting Invite]({result['uri']})."
