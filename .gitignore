@@ -1,3 +1,10 @@
+# Personal files
+scratch.py
+multi_users.json
+zuliprc*
+botserverrc
+*.ics
+
 *.py[cod]
 
 # C extensions
