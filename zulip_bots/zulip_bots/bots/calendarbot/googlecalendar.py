@@ -2,16 +2,15 @@ from __future__ import print_function
 
 import datetime
 import os.path
-from datetime import datetime
-
+from dataclasses import dataclass
+from datetime import datetime, time
 
 from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
 from google.oauth2 import service_account
+from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from dataclasses import dataclass
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
@@ -22,7 +21,7 @@ SCOPES = ["https://www.googleapis.com/auth/calendar"]
 SERVICE_ACCOUNT_FILE = "python-zulip-api/zulip_bots/zulip_bots/bots/calendarbot/creds.json"
 
 
-def send_google_invite(meeting_details=None):
+def send_google_invite(meeting_details):
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
@@ -42,24 +41,21 @@ def send_google_invite(meeting_details=None):
 
     try:
         calendar = build("calendar", "v3", credentials=creds)
+        print(meeting_details.invitees)
 
-        # Call the Calendar API
+        attendees = [{"email": invitee} for invitee in meeting_details.invitees]
+
         event = {
-            "summary": "Bot Test",
+            "summary": meeting_details.name,
             "location": "800 Howard St., San Francisco, CA 94103",
-            "description": "TestyMccTesterson",
+            "description": meeting_details.summary,
             "start": {
-                "dateTime": "2022-12-07T09:00:00-07:00",
-                "timeZone": "America/Los_Angeles",
+                "dateTime": meeting_details.meeting_start.isoformat(),
             },
             "end": {
-                "dateTime": "2022-12-07T10:00:00-07:00",
-                "timeZone": "America/Los_Angeles",
+                "dateTime": meeting_details.meeting_end.isoformat(),
             },
-            "recurrence": ["RRULE:FREQ=DAILY;COUNT=2"],
-            "attendees": [
-                {"email": "melwen26@gmail.com"},
-            ],
+            "attendees": attendees,
             "reminders": {
                 "useDefault": False,
                 "overrides": [
@@ -68,6 +64,7 @@ def send_google_invite(meeting_details=None):
                 ],
             },
         }
+        print(event)
 
         event = (
             calendar.events()
@@ -82,7 +79,3 @@ def send_google_invite(meeting_details=None):
 
     except HttpError as error:
         print("An error occurred: %s" % error)
-
-
-if __name__ == "__main__":
-    send_google_invite()
