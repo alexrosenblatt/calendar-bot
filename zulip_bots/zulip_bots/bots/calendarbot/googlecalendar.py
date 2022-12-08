@@ -42,9 +42,9 @@ def send_google_invite(meeting_details):
     try:
         calendar = build("calendar", "v3", credentials=creds)
         print(meeting_details.invitees)
-        attendee = {"email": invitee for invitee in meeting_details.invitees}
-        print(attendee)
-        # Call the Calendar API
+
+        attendees = [{"email": invitee} for invitee in meeting_details.invitees]
+
         event = {
             "summary": meeting_details.name,
             "location": "800 Howard St., San Francisco, CA 94103",
@@ -55,9 +55,7 @@ def send_google_invite(meeting_details):
             "end": {
                 "dateTime": meeting_details.meeting_end.isoformat(),
             },
-            "attendees": [
-                attendee,
-            ],
+            "attendees": attendees,
             "reminders": {
                 "useDefault": False,
                 "overrides": [
@@ -66,6 +64,7 @@ def send_google_invite(meeting_details):
                 ],
             },
         }
+        print(event)
 
         event = (
             calendar.events()

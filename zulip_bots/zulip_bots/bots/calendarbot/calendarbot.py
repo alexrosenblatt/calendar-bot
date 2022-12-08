@@ -64,6 +64,7 @@ class CalendarBotHandler(object):
         try:
             meeting_details = self.parse_meeting_details(datetime_input,length_minutes)
             self.create_calendar_event(meeting_details,cal)
+            self.send_google_event_invite(meeting_details)
             self.send_event_file(cal)
         except:
              self.input_error_reply()
