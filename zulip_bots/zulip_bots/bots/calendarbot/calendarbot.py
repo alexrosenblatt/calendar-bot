@@ -1,30 +1,20 @@
-from ics import Calendar, Event, Attendee
-from zulip_bots.lib import BotHandler
-from datetime import date,time,datetime,timedelta
 import logging
-from time import sleep
-from tempfile import TemporaryFile
-from dataclasses import dataclass
 import os
+from dataclasses import dataclass
+from datetime import date, datetime, time, timedelta
+from tempfile import TemporaryFile
+from time import sleep
+
+import zulip_bots.bots.calendarbot.googlecalendar as gcal
+from ics import Attendee, Calendar, Event
+from zulip_bots.lib import BotHandler
 
 logging.basicConfig(filename='calendarbot.log', encoding='utf-8', level=logging.DEBUG)
 
 #TODO: Take this from environment variables in the future
-bot_email = 'test-bot-bot@recurse.zulipchat.com'
+bot_email = 'calendarbot2-bot@recurse.zulipchat.com'
 
 #create calendar_object
-
-@dataclass
-class meeting_details:
-    sender_id: int
-    invitees: list
-    meeting_start: datetime
-    meeting_end: datetime
-    name: str
-    summary: str
-    length_minutes: int
-
-
 
 class CalendarBotHandler(object):
     """
@@ -33,6 +23,18 @@ class CalendarBotHandler(object):
     def init(self):
         self.message = {}
         self.bot_handler
+        
+
+    @dataclass
+    class MeetingDetails:
+        sender_id: int
+        invitees: list
+        meeting_start: datetime
+        meeting_end: datetime
+        name: str
+        summary: str
+        length_minutes: int
+
 
     def usage(self):
         return """Your description of the bot"""
@@ -42,6 +44,7 @@ class CalendarBotHandler(object):
         self.bot_handler = bot_handler
         message_content = message['content'].lower()
         cal = Calendar()
+
         
         #casematch is overkill for now, but i suspect future cases to be added
         match message_content.split():
@@ -56,17 +59,20 @@ class CalendarBotHandler(object):
             case ['meet',datetime_input]: #TODO add error handling here
                 meeting_details = self.parse_meeting_details(datetime_input)
                 self.create_calendar_event(meeting_details,cal)
+                self.send_google_event_invite(meeting_details)
                 self.send_event_file(cal)
             case _:
                 self.input_error_reply()
 
-
+    def send_google_event_invite(self,meeting_details):
+        gcal.send_google_invite(meeting_details)
+        
     def input_error_reply(self):
         logging.error(f"User entered:{self.message['content']} - parsing failed")
         response = "Sorry - I didn't understand that. Please use syntax 'Meet [<time:] [duration in minutes, default is 30] '"
         self.bot_handler.send_reply(self.message,response)
 
-    def parse_meeting_details(self,datetime_input,length_minutes=30) -> meeting_details:
+    def parse_meeting_details(self,datetime_input,length_minutes=30) -> MeetingDetails:
         #converts Zulip global timepicker into a python datetime object
         print(datetime_input)
         meeting_start = datetime.fromisoformat(datetime_input.replace('<time:','').replace('>',''))
@@ -80,7 +86,7 @@ class CalendarBotHandler(object):
         recipients = list(map(lambda recipient: (recipient['id'],recipient['email']) , self.message['display_recipient']))
         invitees = [recipient[1] for recipient in recipients if (recipient[1] != bot_email)]
         
-        meeting = meeting_details(sender_id=sender_id,
+        meeting = self.MeetingDetails(sender_id=sender_id,
                 invitees=invitees,
                 meeting_start=meeting_start,
                 meeting_end=meeting_end,
@@ -89,7 +95,7 @@ class CalendarBotHandler(object):
 
         return meeting
     
-    def create_calendar_event(self,meeting: meeting_details,cal):    
+    def create_calendar_event(self,meeting: MeetingDetails,cal):    
         
         #append meeting data to Event object
    
@@ -102,33 +108,27 @@ class CalendarBotHandler(object):
         #create attendee list
         for invitee_email in meeting.invitees:
             event.add_attendee(Attendee(invitee_email))
-            
-            #test attendee
-            event.add_attendee(Attendee('sophieduba@gmail.com'))
 
         # add event to "calendar". Calendar is the top level object used to create the .ics file
         cal.events.add(event)
-
-        # TODO figure out how to make this work
-        # with TemporaryFile(mode='r+',prefix='meeting',suffix='.ics') as my_file:
-        #     my_file.writelines(cal.serialize_iter())
-        #     print(bot_handler.upload_file(my_file))
     
 
     def send_event_file(self,cal):
-        with open('my.ics', 'r+') as my_file:
-            my_file.writelines(cal.serialize_iter())
-            my_file.close()
+        try:
+            with open('my.ics', 'r+') as my_file:
+                my_file.writelines(cal.serialize_iter())
 
-        with open('my.ics', 'r+') as my_file:    
-            result = self.bot_handler.upload_file(my_file)
-            response = f"[Meeting Invite]({result['uri']})."
-            self.bot_handler.send_reply(self.message,response)
-            
-            #erase file before close
-            my_file.truncate(0)
-            my_file.close()
-        
+            #Re-opening file due to issue with empty file when performing operation in the same context-manager
+            with open('my.ics', 'r+') as my_file:    
+                result = self.bot_handler.upload_file(my_file)
+                response = f"[Meeting Invite]({result['uri']})."
+                self.bot_handler.send_reply(self.message,response)
+                #erase file before close
+                my_file.truncate(0) 
+        except:
+            #TODO find/create better error
+            raise FileNotFoundError 
+
           
 
 handler_class = CalendarBotHandler
