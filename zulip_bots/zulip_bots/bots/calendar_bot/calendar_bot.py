@@ -14,6 +14,7 @@ from zulip_bots.lib import BotHandler
 
 TIME_FORMAT = "^(<time).*(>)$"
 BOT_NAME = "(.*\*\*.*|.*bot.*)"
+DEFAULT_CALEVENT_DURATION = 30
 VIRTUAL_RC = "https://recurse.rctogether.com/"
 
 
@@ -29,8 +30,8 @@ class CalEvent:
 
 @dataclass
 class CalendarHandler:
-    event: CalEvent
-    cal: Calendar = Calendar()
+    # event: CalEvent = field(default_factory=CalEvent())
+    # cal: Calendar = field(default_factory=Calendar())
 
     def usage(self) -> str:
         return (
@@ -42,38 +43,46 @@ class CalendarHandler:
     #     storage = bot_handler.storage
 
     
-    def parse_message(self, message_content: str, bot_handler: BotHandler) -> None:
+    def parse_message(self, message: Dict[str, Any], bot_handler: BotHandler) -> str:
         # Split the message string to CalendarBot
-        args = message_content.lower().split()
+        args = message["content"].lower().split()
         # Filter out any arguments that could be related to the bot name. This occurs when there are more than 2 users in the chat.
         filtered_args = [x for x in args if not re.search(BOT_NAME, x)]
         num_args = len(filtered_args)
-        
+        duration = DEFAULT_CALEVENT_DURATION
+
+        # Typechecking for Zulip global time and optional duration argument
+        if not num_args:
+            bot_handler.send_reply(message, self.usage())
+            return
         if num_args > 2: 
-            raise TypeError("Expected at most 2 arguments, received {num_args}")
-
+            bot_handler.send_reply(message, f"TypeError: Expected at most 2 arguments, received {num_args}")
+            return
         
+        if not re.search(TIME_FORMAT, filtered_args[0]):
+            bot_handler.send_reply(message, f"Could not parse {message['content']}. Please pass in a Zulip global time `<time`")
+            return
 
+        try:
+            duration = int(filtered_args[1])
+        except:
+            bot_handler.send_reply(message, f"Could not parse duration input {filtered_args[1]}")
+            return
 
+        confirm_message = f"Create a meeting at {filtered_args[0]} for {duration}mins?"
+        
+        return confirm_message
 
 
     def handle_message(self, message: Dict[str, Any], bot_handler: BotHandler) -> None:
-        content = message["content"]
-
-        if content == "":
-            bot_handler.send_reply(message, self.usage())
-            return
-
         # Parse the initial message containing the event time and duration info
-        try:
-            self.parse_message(content, bot_handler)
-        except TypeError as e:
-            self.bot_handler.send_reply(message, e)
-        except:
-            self.bot_handler.send_reply(message, f"Could not parse {content}. Please pass in a Zulip global time `<time`")
-
-    
-        bot_handler.send_reply(message, self.message["response"])
+        # try:
+            response = self.parse_message(message, bot_handler)
+            bot_handler.send_reply(message, response)
+        # except TypeError as e:
+        #     bot_handler.send_reply(message, e)
+        # except Exception as e:
+        #     bot_handler.send_reply(message, e)
 
 
 handler_class = CalendarHandler
