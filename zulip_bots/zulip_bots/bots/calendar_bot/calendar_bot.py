@@ -39,11 +39,13 @@ class CalendarHandler:
         )
 
 
-    # def initialize(self, bot_handler: BotHandler) -> None:
-    #     storage = bot_handler.storage
+    def initialize(self, bot_handler: BotHandler) -> None:
+        storage = bot_handler.storage
+        if not storage.contains("confirmation"):
+            storage.put("confirmation", None)
 
     
-    def parse_message(self, message: Dict[str, Any], bot_handler: BotHandler) -> str:
+    def parse_first_response(self, message: Dict[str, Any], bot_handler: BotHandler) -> str:
         # Split the message string to CalendarBot
         args = message["content"].lower().split()
         # Filter out any arguments that could be related to the bot name. This occurs when there are more than 2 users in the chat.
@@ -55,7 +57,7 @@ class CalendarHandler:
         if not num_args:
             bot_handler.send_reply(message, self.usage())
             return
-        if num_args > 2: 
+        elif num_args > 2: 
             bot_handler.send_reply(message, f"TypeError: Expected at most 2 arguments, received {num_args}")
             return
         
@@ -66,23 +68,32 @@ class CalendarHandler:
         try:
             if num_args == 2:
                 duration = int(filtered_args[1])
+                bot_handler.storage.put("duration", duration)
         except:
             bot_handler.send_reply(message, f"Could not parse duration input {filtered_args[1]}")
             return
 
+        time = filtered_args[0].replace("<time:", "").replace(">", "")
+        bot_handler.storage.put("datetime", time)
+
         confirm_message = f"Create a meeting at {filtered_args[0]} for {duration}mins?"
         
         return confirm_message
+        
 
 
     def handle_message(self, message: Dict[str, Any], bot_handler: BotHandler) -> None:
+        storage = bot_handler.storage
+
+    
         # Parse the initial message containing the event time and duration info
-        response = self.parse_message(message, bot_handler)
+        # if storage.get("confirmation") is None and storage.get("time"):
+
+        response = self.parse_first_response(message, bot_handler)
         bot_handler.send_reply(message, response)
 
 
 handler_class = CalendarHandler
-
 
 
 
