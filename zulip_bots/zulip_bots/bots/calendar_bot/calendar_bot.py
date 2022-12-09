@@ -1,5 +1,6 @@
 from typing import Any, Dict, List
-from dataclasses import dataclass
+import logging
+from dataclasses import dataclass, field
 from datetime import datetime
 import re
 
@@ -11,7 +12,8 @@ import pytz
 
 from zulip_bots.lib import BotHandler
 
-TIME_FORMAT = "<time.*>"
+TIME_FORMAT = "^(<time).*(>)$"
+BOT_NAME = "(.*\*\*.*|.*bot.*)"
 VIRTUAL_RC = "https://recurse.rctogether.com/"
 
 
@@ -27,25 +29,51 @@ class CalEvent:
 
 @dataclass
 class CalendarHandler:
-    message = {}
-    cal: Calendar()
+    event: CalEvent
+    cal: Calendar = Calendar()
 
     def usage(self) -> str:
-        return """
-        Calendar Bot helps to schedule fun meetings only! 
-        """   
+        return (
+            "Calendar Bot is a meeting scheduler. Enter a Zulip global time `<time` and then a duration in minutes (e.g. 60 for 1 hour). Default event duration is 30 mins and the default email addresses are the emails associated with user emails. There is an option to change invitees with a comma separated list of email addresses."
+        )
+
+
+    # def initialize(self, bot_handler: BotHandler) -> None:
+    #     storage = bot_handler.storage
 
     
-    def parse_message(message):
-        num_people = len(message["display_recipients"]) - 1
+    def parse_message(self, message_content: str, bot_handler: BotHandler) -> None:
+        # Split the message string to CalendarBot
+        args = message_content.lower().split()
+        # Filter out any arguments that could be related to the bot name. This occurs when there are more than 2 users in the chat.
+        filtered_args = [x for x in args if not re.search(BOT_NAME, x)]
+        num_args = len(filtered_args)
         
+        if num_args > 2: 
+            raise TypeError("Expected at most 2 arguments, received {num_args}")
+
         
+
 
 
 
     def handle_message(self, message: Dict[str, Any], bot_handler: BotHandler) -> None:
-        self.parse_message(message)
+        content = message["content"]
 
+        if content == "":
+            bot_handler.send_reply(message, self.usage())
+            return
+
+        # Parse the initial message containing the event time and duration info
+        try:
+            self.parse_message(content, bot_handler)
+        except TypeError as e:
+            self.bot_handler.send_reply(message, e)
+        except:
+            self.bot_handler.send_reply(message, f"Could not parse {content}. Please pass in a Zulip global time `<time`")
+
+    
+        bot_handler.send_reply(message, self.message["response"])
 
 
 handler_class = CalendarHandler
