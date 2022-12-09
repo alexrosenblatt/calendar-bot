@@ -64,7 +64,8 @@ class CalendarHandler:
             return
 
         try:
-            duration = int(filtered_args[1])
+            if num_args == 2:
+                duration = int(filtered_args[1])
         except:
             bot_handler.send_reply(message, f"Could not parse duration input {filtered_args[1]}")
             return
@@ -76,13 +77,8 @@ class CalendarHandler:
 
     def handle_message(self, message: Dict[str, Any], bot_handler: BotHandler) -> None:
         # Parse the initial message containing the event time and duration info
-        # try:
-            response = self.parse_message(message, bot_handler)
-            bot_handler.send_reply(message, response)
-        # except TypeError as e:
-        #     bot_handler.send_reply(message, e)
-        # except Exception as e:
-        #     bot_handler.send_reply(message, e)
+        response = self.parse_message(message, bot_handler)
+        bot_handler.send_reply(message, response)
 
 
 handler_class = CalendarHandler
