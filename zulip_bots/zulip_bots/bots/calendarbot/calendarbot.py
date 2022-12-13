@@ -71,7 +71,7 @@ class CalendarBotHandler(object):
             self.input_error_reply()
 
     def send_google_event_invite(self,meeting_details):
-        googleevent(meeting_details).send_google_invite()
+        googleevent(meeting_details).create_and_send_google_invite()
         
     def input_error_reply(self):
         logging.error(f"User entered:{self.message['content']} - parsing failed")

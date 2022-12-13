@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from datetime import datetime, time
 
 from google.auth.transport.requests import Request
-from google.oauth2 import service_account
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
@@ -33,11 +32,13 @@ BOT_CALENDAR_ID = (
 class GoogleEvent:
     def __init__(self, meeting_details) -> None:
         self.authenticate_google()
-        self.name = meeting_details.name
-        self.summary = meeting_details.summary
-        self.meeting_start = meeting_details.meeting_start.isoformat()
-        self.meeting_end = meeting_details.meeting_end.isoformat()
-        self.attendees = [{"email": invitee} for invitee in meeting_details.invitees]
+        self.name: str = meeting_details.name
+        self.summary: str = meeting_details.summary
+        self.meeting_start: str = meeting_details.meeting_start.isoformat()
+        self.meeting_end: str = meeting_details.meeting_end.isoformat()
+        self.attendees: list[dict[str, str]] = [
+            {"email": invitee} for invitee in meeting_details.invitees
+        ]
         self.creds
 
     def authenticate_google(self):
@@ -62,28 +63,31 @@ class GoogleEvent:
         except:
             logging.exception("Error occurred during google authentication.")
 
-    def send_google_invite(self):
+    def create_and_send_google_invite(self):
         try:
             calendar = build("calendar", "v3", credentials=self.creds)
 
-            self.new_method()
+            parsed_details = self.create_meeting()
 
-            event = (
-                calendar.events()
-                .insert(
-                    calendarId=BOT_CALENDAR_ID,
-                    body=event,
-                    sendUpdates="all",
-                )
-                .execute()
-            )
+            event = self.send_event(calendar, parsed_details)
             logging.debug("Event created: %s" % (event.get("htmlLink")))
 
         except HttpError as error:
             logging.exception("An error occurred: %s" % error)
 
-    def new_method(self):
-        event = {
+    def send_event(self, calendar, parsed_details):
+        return (
+            calendar.events()
+            .insert(
+                calendarId=BOT_CALENDAR_ID,
+                body=parsed_details,
+                sendUpdates="all",
+            )
+            .execute()
+        )
+
+    def create_meeting(self) -> dict:
+        return {
             "summary": self.name,
             "location": "800 Howard St., San Francisco, CA 94103",
             "description": self.summary,
