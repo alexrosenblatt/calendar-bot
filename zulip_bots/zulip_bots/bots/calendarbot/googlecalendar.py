@@ -24,7 +24,7 @@ SCOPES = ["https://www.googleapis.com/auth/calendar"]
 from google.oauth2 import service_account
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
-SERVICE_ACCOUNT_FILE = "zulip_bots/zulip_bots/bots/calendarbot/creds.json"
+CREDS_FILE = "zulip_bots/zulip_bots/bots/calendarbot/creds.json"
 BOT_CALENDAR_ID = (
     "5edeaa7e7808543c6f5b1f64433d135e618cc3cad5d2c2f2df2b452c81957459@group.calendar.google.com"
 )
@@ -41,12 +41,15 @@ def authenticate_google():
         # time.
         if os.path.exists("token.json"):
             creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+            logging.debug("Cred token found. Using existing credentials")
         # If there are no (valid) credentials available, let the user log in.
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
+                logging.debug("Credentials expired - requesting a refresh of authentication")
             else:
-                flow = InstalledAppFlow.from_client_secrets_file(SERVICE_ACCOUNT_FILE, SCOPES)
+                logging.debug("No credentials found - Initiating authentication flow")
+                flow = InstalledAppFlow.from_client_secrets_file(CREDS_FILE, SCOPES)
                 creds = flow.run_local_server(port=8080)
                 creds = creds
             # Save the credentials for the next run
@@ -54,15 +57,13 @@ def authenticate_google():
                 token.write(creds.to_json())
     except:
         logging.exception("Error occurred during google authentication.")
+        raise (AuthenticationError)
 
 
 @dataclass
 class GcalMeeting:
     def __init__(self, meeting_details) -> None:
-        try:
-            self.creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-        except:
-            logging.debug("Cred file cannot be loaded.")
+        self.creds = self.authenticate_with_token()
         self.name: str = meeting_details.name
         self.summary: str = meeting_details.summary
         self.meeting_start: str = meeting_details.meeting_start.isoformat()
@@ -73,6 +74,14 @@ class GcalMeeting:
         self.calendar = build("calendar", "v3", credentials=self.creds)
 
         self.parsed_details = self.create_gcal_event()
+
+    def authenticate_with_token(self):
+        try:
+            creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+        except:
+            logging.debug("Cred file cannot be loaded.")
+            raise AuthenticationError
+        return creds
 
     def send_event(self):
         try:
@@ -93,7 +102,7 @@ class GcalMeeting:
     def create_gcal_event(self) -> dict:
         return {
             "summary": self.name,
-            "location": "800 Howard St., San Francisco, CA 94103",
+            "location": "Remote Recurse",
             "description": self.summary,
             "start": {
                 "dateTime": self.meeting_start,
@@ -110,3 +119,9 @@ class GcalMeeting:
                 ],
             },
         }
+
+
+class AuthenticationError(Exception):
+    """Raised when google calendar authentication cannot be completed."""
+
+    pass
