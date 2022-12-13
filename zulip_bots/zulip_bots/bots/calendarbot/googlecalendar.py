@@ -59,7 +59,10 @@ def authenticate_google():
 @dataclass
 class GcalMeeting:
     def __init__(self, meeting_details) -> None:
-        self.creds = creds
+        try:
+            self.creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+        except:
+            logging.debug("Cred file cannot be loaded.")
         self.name: str = meeting_details.name
         self.summary: str = meeting_details.summary
         self.meeting_start: str = meeting_details.meeting_start.isoformat()
