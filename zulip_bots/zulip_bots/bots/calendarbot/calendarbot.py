@@ -6,7 +6,7 @@ from tempfile import TemporaryFile
 from time import sleep
 from re import search
 
-from zulip_bots.bots.calendarbot.googlecalendar import GoogleEvent as googleevent
+from zulip_bots.bots.calendarbot.googlecalendar import GcalMeeting as GcalMeeting
 from ics import Attendee, Calendar, Event
 from zulip_bots.lib import BotHandler
 
@@ -71,7 +71,8 @@ class CalendarBotHandler(object):
             self.input_error_reply()
 
     def send_google_event_invite(self,meeting_details):
-        googleevent(meeting_details).create_and_send_google_invite()
+        GcalMeeting(meeting_details).send_event()
+        print(meeting_details)
         
     def input_error_reply(self):
         logging.error(f"User entered:{self.message['content']} - parsing failed")

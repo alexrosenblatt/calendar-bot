@@ -10,6 +10,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from dataclasses import dataclass
 
 logging.basicConfig(
     filename="zulip_bots/zulip_bots/bots/calendarbot/calendarbot.log",
@@ -29,9 +30,39 @@ BOT_CALENDAR_ID = (
 )
 
 
-class GoogleEvent:
+def authenticate_google():
+    # TODO we need to prevent the authenticate refresh flow from running for end users
+
+    try:
+        global creds
+        creds = None
+        # The file token.json stores the user's access and refresh tokens, and is
+        # created automatically when the authorization flow completes for the first
+        # time.
+        if os.path.exists("token.json"):
+            creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+        # If there are no (valid) credentials available, let the user log in.
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(SERVICE_ACCOUNT_FILE, SCOPES)
+                creds = flow.run_local_server(port=8080)
+                creds = creds
+            # Save the credentials for the next run
+            with open("token.json", "w") as token:
+                token.write(creds.to_json())
+    except:
+        logging.exception("Error occurred during google authentication.")
+
+
+authenticate_google()
+
+
+@dataclass
+class GcalMeeting:
     def __init__(self, meeting_details) -> None:
-        self.authenticate_google()
+        self.creds = creds
         self.name: str = meeting_details.name
         self.summary: str = meeting_details.summary
         self.meeting_start: str = meeting_details.meeting_start.isoformat()
@@ -39,54 +70,27 @@ class GoogleEvent:
         self.attendees: list[dict[str, str]] = [
             {"email": invitee} for invitee in meeting_details.invitees
         ]
-        self.creds
+        self.calendar = build("calendar", "v3", credentials=self.creds)
 
-    def authenticate_google(self):
+        self.parsed_details = self.create_gcal_event()
+
+    def send_event(self):
         try:
-            self.creds = None
-            # The file token.json stores the user's access and refresh tokens, and is
-            # created automatically when the authorization flow completes for the first
-            # time.
-            if os.path.exists("token.json"):
-                self.creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-            # If there are no (valid) credentials available, let the user log in.
-            if not self.creds or not self.creds.valid:
-                if self.creds and self.creds.expired and self.creds.refresh_token:
-                    self.creds.refresh(Request())
-                else:
-                    flow = InstalledAppFlow.from_client_secrets_file(SERVICE_ACCOUNT_FILE, SCOPES)
-                    creds = flow.run_local_server(port=8080)
-                    self.creds = creds
-                # Save the credentials for the next run
-                with open("token.json", "w") as token:
-                    token.write(self.creds.to_json())
-        except:
-            logging.exception("Error occurred during google authentication.")
-
-    def create_and_send_google_invite(self):
-        try:
-            calendar = build("calendar", "v3", credentials=self.creds)
-
-            parsed_details = self.create_meeting()
-
-            event = self.send_event(calendar, parsed_details)
+            event = (
+                self.calendar.events()
+                .insert(
+                    calendarId=BOT_CALENDAR_ID,
+                    body=self.parsed_details,
+                    sendUpdates="all",
+                )
+                .execute()
+            )
             logging.debug("Event created: %s" % (event.get("htmlLink")))
 
         except HttpError as error:
             logging.exception("An error occurred: %s" % error)
 
-    def send_event(self, calendar, parsed_details):
-        return (
-            calendar.events()
-            .insert(
-                calendarId=BOT_CALENDAR_ID,
-                body=parsed_details,
-                sendUpdates="all",
-            )
-            .execute()
-        )
-
-    def create_meeting(self) -> dict:
+    def create_gcal_event(self) -> dict:
         return {
             "summary": self.name,
             "location": "800 Howard St., San Francisco, CA 94103",
