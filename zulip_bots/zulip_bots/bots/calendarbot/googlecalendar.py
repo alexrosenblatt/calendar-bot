@@ -18,7 +18,10 @@ SCOPES = ["https://www.googleapis.com/auth/calendar"]
 from google.oauth2 import service_account
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
-SERVICE_ACCOUNT_FILE = "python-zulip-api/zulip_bots/zulip_bots/bots/calendarbot/creds.json"
+SERVICE_ACCOUNT_FILE = "zulip_bots/zulip_bots/bots/calendarbot/creds.json"
+BOT_CALENDAR_ID = (
+    "5edeaa7e7808543c6f5b1f64433d135e618cc3cad5d2c2f2df2b452c81957459@group.calendar.google.com"
+)
 
 
 def send_google_invite(meeting_details):
@@ -69,7 +72,7 @@ def send_google_invite(meeting_details):
         event = (
             calendar.events()
             .insert(
-                calendarId="5edeaa7e7808543c6f5b1f64433d135e618cc3cad5d2c2f2df2b452c81957459@group.calendar.google.com",
+                calendarId=BOT_CALENDAR_ID,
                 body=event,
                 sendUpdates="all",
             )

@@ -10,7 +10,7 @@ import zulip_bots.bots.calendarbot.googlecalendar as gcal
 from ics import Attendee, Calendar, Event
 from zulip_bots.lib import BotHandler
 
-logging.basicConfig(filename='calendarbot.log', encoding='utf-8', level=logging.DEBUG)
+logging.basicConfig(filename='zulip_bots/zulip_bots/bots/calendarbot/calendarbot.log', encoding='utf-8', level=logging.DEBUG)
 
 #TODO: Take this from environment variables in the future
 BOT_REGEX = '.+(bot@).+(zulipchat.com)'
@@ -67,7 +67,8 @@ class CalendarBotHandler(object):
             self.send_google_event_invite(meeting_details)
             self.send_event_file(cal)
         except:
-             self.input_error_reply()
+            logging.exception('')
+            self.input_error_reply()
 
     def send_google_event_invite(self,meeting_details):
         gcal.send_google_invite(meeting_details)
