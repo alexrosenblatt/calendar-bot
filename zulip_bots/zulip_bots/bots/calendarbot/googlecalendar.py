@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import datetime
+import logging
 import os.path
 from dataclasses import dataclass
 from datetime import datetime, time
@@ -11,6 +11,12 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+
+logging.basicConfig(
+    filename="zulip_bots/zulip_bots/bots/calendarbot/calendarbot.log",
+    encoding="utf-8",
+    level=logging.DEBUG,
+)
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
@@ -24,41 +30,70 @@ BOT_CALENDAR_ID = (
 )
 
 
-def send_google_invite(meeting_details):
-    creds = None
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    if os.path.exists("token.json"):
-        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(SERVICE_ACCOUNT_FILE, SCOPES)
-            creds = flow.run_local_server(port=8080)
-        # Save the credentials for the next run
-        with open("token.json", "w") as token:
-            token.write(creds.to_json())
+class GoogleEvent:
+    def __init__(self, meeting_details) -> None:
+        self.authenticate_google()
+        self.name = meeting_details.name
+        self.summary = meeting_details.summary
+        self.meeting_start = meeting_details.meeting_start.isoformat()
+        self.meeting_end = meeting_details.meeting_end.isoformat()
+        self.attendees = [{"email": invitee} for invitee in meeting_details.invitees]
+        self.creds
 
-    try:
-        calendar = build("calendar", "v3", credentials=creds)
-        print(meeting_details.invitees)
+    def authenticate_google(self):
+        try:
+            self.creds = None
+            # The file token.json stores the user's access and refresh tokens, and is
+            # created automatically when the authorization flow completes for the first
+            # time.
+            if os.path.exists("token.json"):
+                self.creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+            # If there are no (valid) credentials available, let the user log in.
+            if not self.creds or not self.creds.valid:
+                if self.creds and self.creds.expired and self.creds.refresh_token:
+                    self.creds.refresh(Request())
+                else:
+                    flow = InstalledAppFlow.from_client_secrets_file(SERVICE_ACCOUNT_FILE, SCOPES)
+                    creds = flow.run_local_server(port=8080)
+                    self.creds = creds
+                # Save the credentials for the next run
+                with open("token.json", "w") as token:
+                    token.write(self.creds.to_json())
+        except:
+            logging.exception("Error occurred during google authentication.")
 
-        attendees = [{"email": invitee} for invitee in meeting_details.invitees]
+    def send_google_invite(self):
+        try:
+            calendar = build("calendar", "v3", credentials=self.creds)
 
+            self.new_method()
+
+            event = (
+                calendar.events()
+                .insert(
+                    calendarId=BOT_CALENDAR_ID,
+                    body=event,
+                    sendUpdates="all",
+                )
+                .execute()
+            )
+            logging.debug("Event created: %s" % (event.get("htmlLink")))
+
+        except HttpError as error:
+            logging.exception("An error occurred: %s" % error)
+
+    def new_method(self):
         event = {
-            "summary": meeting_details.name,
+            "summary": self.name,
             "location": "800 Howard St., San Francisco, CA 94103",
-            "description": meeting_details.summary,
+            "description": self.summary,
             "start": {
-                "dateTime": meeting_details.meeting_start.isoformat(),
+                "dateTime": self.meeting_start,
             },
             "end": {
-                "dateTime": meeting_details.meeting_end.isoformat(),
+                "dateTime": self.meeting_end,
             },
-            "attendees": attendees,
+            "attendees": self.attendees,
             "reminders": {
                 "useDefault": False,
                 "overrides": [
@@ -67,18 +102,3 @@ def send_google_invite(meeting_details):
                 ],
             },
         }
-        print(event)
-
-        event = (
-            calendar.events()
-            .insert(
-                calendarId=BOT_CALENDAR_ID,
-                body=event,
-                sendUpdates="all",
-            )
-            .execute()
-        )
-        print("Event created: %s" % (event.get("htmlLink")))
-
-    except HttpError as error:
-        print("An error occurred: %s" % error)
