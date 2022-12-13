@@ -6,11 +6,11 @@ from tempfile import TemporaryFile
 from time import sleep
 from re import search
 
-import zulip_bots.bots.calendarbot.googlecalendar as gcal
+from zulip_bots.bots.calendarbot.googlecalendar import GcalMeeting as GcalMeeting ,authenticate_google,AuthenticationError
 from ics import Attendee, Calendar, Event
 from zulip_bots.lib import BotHandler
 
-logging.basicConfig(filename='calendarbot.log', encoding='utf-8', level=logging.DEBUG)
+logging.basicConfig(filename='zulip_bots/zulip_bots/bots/calendarbot/calendarbot.log', encoding='utf-8', level=logging.DEBUG)
 
 #TODO: Take this from environment variables in the future
 BOT_REGEX = '.+(bot@).+(zulipchat.com)'
@@ -55,8 +55,11 @@ class CalendarBotHandler(object):
                 logging.debug(f"Datetime_input:{datetime_input},length_minutes {length_minutes}")
                 self.create_and_send_meeting(cal, datetime_input, length_minutes)
             case [datetime_input]: 
+                if datetime_input == 'auth':
+                    authenticate_google()
                 logging.debug(f"Datetime_input:{datetime_input}")
                 self.create_and_send_meeting(cal, datetime_input)
+
             case _:
                 self.input_error_reply()
 
@@ -67,15 +70,14 @@ class CalendarBotHandler(object):
             self.send_google_event_invite(meeting_details)
             self.send_event_file(cal)
         except:
-             self.input_error_reply()
+            logging.exception('Error occurred during parsing.')
+            self.input_error_reply()
 
     def send_google_event_invite(self,meeting_details):
-        gcal.send_google_invite(meeting_details)
-        
-    def input_error_reply(self):
-        logging.error(f"User entered:{self.message['content']} - parsing failed")
-        response = "Sorry - I didn't understand that. Please use syntax '[<time:] [duration in minutes, default is 30] '"
-        self.bot_handler.send_reply(self.message,response)
+        try:
+            GcalMeeting(meeting_details).send_event()
+        except AuthenticationError: 
+            self.authentication_error_reply()
 
     def parse_meeting_details(self,datetime_input,length_minutes) -> MeetingDetails:
         
@@ -139,6 +141,14 @@ class CalendarBotHandler(object):
             #TODO find/create better error
             raise FileNotFoundError 
 
+    def authentication_error_reply(self):
+        response = "Google authentication could not be completed. Please reach out to bot owner to reauthenticate."
+        self.bot_handler.send_reply(self.message,response)
+        
+    def input_error_reply(self):
+        logging.error(f"User entered:{self.message['content']} - parsing failed")
+        response = "Sorry - I didn't understand that. Please use syntax '[<time:] [duration in minutes, default is 30] '"
+        self.bot_handler.send_reply(self.message,response)
           
 
 handler_class = CalendarBotHandler

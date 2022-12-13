@@ -1,0 +1,5 @@
+{
+    "python.testing.pytestArgs": ["zulip_bots"],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
+}
