@@ -168,6 +168,7 @@ cython_debug/
 poetry.toml
 
 creds.json
+token.json
 
 
 ### VisualStudioCode ###
