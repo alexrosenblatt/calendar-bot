@@ -56,9 +56,6 @@ def authenticate_google():
         logging.exception("Error occurred during google authentication.")
 
 
-authenticate_google()
-
-
 @dataclass
 class GcalMeeting:
     def __init__(self, meeting_details) -> None:

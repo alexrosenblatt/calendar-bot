@@ -6,7 +6,7 @@ from tempfile import TemporaryFile
 from time import sleep
 from re import search
 
-from zulip_bots.bots.calendarbot.googlecalendar import GcalMeeting as GcalMeeting
+from zulip_bots.bots.calendarbot.googlecalendar import GcalMeeting as GcalMeeting ,authenticate_google
 from ics import Attendee, Calendar, Event
 from zulip_bots.lib import BotHandler
 
@@ -55,8 +55,11 @@ class CalendarBotHandler(object):
                 logging.debug(f"Datetime_input:{datetime_input},length_minutes {length_minutes}")
                 self.create_and_send_meeting(cal, datetime_input, length_minutes)
             case [datetime_input]: 
+                if datetime_input == 'auth':
+                    authenticate_google()
                 logging.debug(f"Datetime_input:{datetime_input}")
                 self.create_and_send_meeting(cal, datetime_input)
+
             case _:
                 self.input_error_reply()
 
