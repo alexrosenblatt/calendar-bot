@@ -38,14 +38,9 @@ class CalendarHandler:
             "Calendar Bot is a meeting scheduler. Enter a Zulip global time `<time` and then a duration in minutes (e.g. 60 for 1 hour). Default event duration is 30 mins and the default email addresses are the emails associated with user emails. There is an option to change invitees with a comma separated list of email addresses."
         )
 
-
-    def initialize(self, bot_handler: BotHandler) -> None:
-        storage = bot_handler.storage
-        if not storage.contains("confirmation"):
-            storage.put("confirmation", None)
-
     
     def parse_first_response(self, message: Dict[str, Any], bot_handler: BotHandler) -> str:
+        bot_handler.storage.put("Confirmation", None)
         # Split the message string to CalendarBot
         args = message["content"].lower().split()
         # Filter out any arguments that could be related to the bot name. This occurs when there are more than 2 users in the chat.
@@ -76,21 +71,34 @@ class CalendarHandler:
         time = filtered_args[0].replace("<time:", "").replace(">", "")
         bot_handler.storage.put("datetime", time)
 
-        confirm_message = f"Create a meeting at {filtered_args[0]} for {duration}mins?"
+        confirm_message = f"Create a meeting at {filtered_args[0]} for {duration}mins? (Y / N)"
         
         return confirm_message
-        
+    
+
+    def parse_second_message(message: Dict[str, Any], bot_handler: BotHandler) -> None:
+        ... # Y/N in message["content"]
+        return 
 
 
     def handle_message(self, message: Dict[str, Any], bot_handler: BotHandler) -> None:
         storage = bot_handler.storage
 
-    
-        # Parse the initial message containing the event time and duration info
-        # if storage.get("confirmation") is None and storage.get("time"):
+        print(bot_handler.storage.get("confirmation"))
+        print(bot_handler.storage.get("datetime"))
 
-        response = self.parse_first_response(message, bot_handler)
-        bot_handler.send_reply(message, response)
+        # Parse the initial message containing the event time and duration info
+        if storage.get("confirmation") is None and not storage.contains("datetime"):
+            response = self.parse_first_response(message, bot_handler)
+            bot_handler.send_reply(message, response)
+        elif storage.get("confirmation") is None and storage.contains("datetime"):
+            self.parse_second_response(message, bot_handler)
+        elif storage.get("confirmation") == "Y":
+            ... # trigger calevent stuff and then wipe out the storage
+        elif storage.get("confirmation") == "N":
+            ... # send reply, OK, won't create this! Send self.usage()
+            ... # wipe out everything in storage 
+
 
 
 handler_class = CalendarHandler
