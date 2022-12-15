@@ -1,9 +1,6 @@
-from __future__ import print_function
-
 import logging
 import os.path
 from dataclasses import dataclass
-from datetime import datetime, time
 
 # TODO: Google packages (google-api-python-client, google-auth-oauthlib) need to be installed into venv
 from google.auth.transport.requests import Request
@@ -11,7 +8,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from dataclasses import dataclass
+
 
 logging.basicConfig(
     filename="zulip_bots/zulip_bots/bots/calendarbot/calendarbot.log",
@@ -19,11 +16,8 @@ logging.basicConfig(
     level=logging.DEBUG,
 )
 
-# If modifying these scopes, delete the file token.json.
-SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
-from google.oauth2 import service_account
-
+# If modifying these scopes, delete the file token.json
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 CREDS_FILE = "zulip_bots/zulip_bots/bots/calendarbot/creds.json"
 BOT_CALENDAR_ID = (
@@ -32,7 +26,7 @@ BOT_CALENDAR_ID = (
 
 
 def authenticate_google():
-    # TODO we need to prevent the authenticate refresh flow from running for end users
+    # TODO: We need to prevent the authenticate refresh flow from running for end users
 
     try:
         global creds
@@ -66,15 +60,19 @@ class GcalMeeting:
     def __init__(self, meeting_details) -> None:
         self.creds = self.authenticate_with_token()
         self.name: str = meeting_details.name
-        self.summary: str = meeting_details.summary
+        self.location = meeting_details.location
+        self.description: str = meeting_details.description
         self.meeting_start: str = meeting_details.meeting_start.isoformat()
         self.meeting_end: str = meeting_details.meeting_end.isoformat()
         self.attendees: list[dict[str, str]] = [
             {"email": invitee} for invitee in meeting_details.invitees
         ]
+
+
         self.calendar = build("calendar", "v3", credentials=self.creds)
 
         self.parsed_details = self.create_gcal_event()
+
 
     def authenticate_with_token(self):
         try:
@@ -83,6 +81,7 @@ class GcalMeeting:
             logging.debug("Cred file cannot be loaded.")
             raise AuthenticationError
         return creds
+
 
     def send_event(self):
         try:
@@ -100,11 +99,12 @@ class GcalMeeting:
         except HttpError as error:
             logging.exception("An error occurred: %s" % error)
 
+
     def create_gcal_event(self) -> dict:
         return {
             "summary": self.name,
-            "location": "Remote Recurse",
-            "description": self.summary,
+            "location": self.location,
+            "description": self.description,
             "start": {
                 "dateTime": self.meeting_start,
             },
@@ -123,6 +123,7 @@ class GcalMeeting:
 
 
 class AuthenticationError(Exception):
-    """Raised when google calendar authentication cannot be completed."""
-
-    pass
+    """
+    Raised when google calendar authentication cannot be completed.
+    """
+    ...

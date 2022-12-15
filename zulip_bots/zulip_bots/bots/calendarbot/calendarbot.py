@@ -11,7 +11,11 @@ from zulip_bots.lib import BotHandler
 from zulip_bots.bots.calendarbot.googlecalendar import GcalMeeting as GcalMeeting,authenticate_google, AuthenticationError
 
 
-logging.basicConfig(filename='zulip_bots/zulip_bots/bots/calendarbot/calendarbot.log', encoding='utf-8', level=logging.DEBUG)
+logging.basicConfig(
+    filename='zulip_bots/zulip_bots/bots/calendarbot/calendarbot.log',
+    encoding='utf-8',
+    level=logging.DEBUG
+)
 
 
 #TODO: Take this from environment variables in the future
@@ -28,13 +32,14 @@ class CalendarBotHandler(object):
 
     @dataclass
     class MeetingDetails:
-        sender_email: str
-        invitees: list
+        name: str
+        location: str
+        description: str
         meeting_start: datetime
         meeting_end: datetime
-        name: str
-        summary: str
         length_minutes: int
+        sender_email: str
+        invitees: list
 
 
     def initialize(self, bot_handler: BotHandler) -> None:
@@ -63,9 +68,6 @@ class CalendarBotHandler(object):
         starttime = storage.get("starttime")
         duration = storage.get("duration")
 
-         # TODO: Remove after testing
-        print(f"Confirmation: {confirmation}\nStart Time: {starttime}'\nDuration: {duration}")
-
         # TODO: Instantiating Calendar here for now due to bug when trying to move it to init, works but may cause issues in future
         cal = Calendar()
 
@@ -81,23 +83,10 @@ class CalendarBotHandler(object):
             #     bot_response = self.parse_second_message(message, bot_handler, starttime, duration, cal)
             # except: 
             #     bot_response = f"Could not parse confirmation message: '{message['content']}'. Please message CalendarBot with 'Y' / 'N' to confirm <time:{starttime}>"
+
             bot_response = self.parse_second_message(message, bot_handler, starttime, cal, duration)
 
             bot_handler.send_reply(message, bot_response)
-        
-        #casematch is overkill for now, but i suspect future cases to be added
-        # match message_content.split():
-        #     case [datetime_input,length_minutes]:         
-        #         logging.debug(f"Datetime_input:{datetime_input},length_minutes {length_minutes}")
-        #         self.create_and_send_meeting(cal, datetime_input, length_minutes)
-        #     case [datetime_input]: 
-        #         if datetime_input == 'auth':
-        #             authenticate_google()
-        #         logging.debug(f"Datetime_input:{datetime_input}")
-        #         self.create_and_send_meeting(cal, datetime_input)
-
-        #     case _:
-        #         self.input_error_reply()
 
     
     def message_content_helper(self, message: Dict[str, Any]) -> List[str]:
@@ -118,6 +107,9 @@ class CalendarBotHandler(object):
         # Validate args Zulip global time and duration
         if not num_args or filtered_args[0] == "help":
             return self.usage()
+        elif filtered_args[0] == "auth":
+            authenticate_google()
+            return "Authenticating Google token..."
         elif num_args > 2: 
             return f"Expected at most 2 arguments, received {num_args}"
 
@@ -148,18 +140,20 @@ class CalendarBotHandler(object):
         filtered_args = self.message_content_helper(message)
         confirmation = filtered_args[0]
 
-        print(f"Duration2: {duration}")
-
         if confirmation == "y":
             duration = int(duration)
             meeting_start, meeting_end = self.parse_datetime_input(starttime, duration)
             meeting_details = self.create_meeting_details(meeting_start, meeting_end, message["sender_email"], message["display_recipient"], duration)
 
+            # Create event ics file for download 
             self.create_ics_event(meeting_details, cal)
             self.send_event_file(message, bot_handler, cal)
+            # Create Google event
+            google_response = self.send_google_event_invite(meeting_details)
+            # Remove event details from storage
             self.clear_storage(bot_handler)
 
-            return "Success!"
+            return google_response
 
         elif confirmation == "n":
             self.clear_storage(bot_handler)
@@ -175,7 +169,6 @@ class CalendarBotHandler(object):
         Converts Zulip global timepicker into a python datetime object
         """
 
-        print(f"Duration3: {duration}")
         meeting_start = datetime.fromisoformat(starttime)
         meeting_end = meeting_start + timedelta(minutes=duration)
 
@@ -184,27 +177,22 @@ class CalendarBotHandler(object):
 
     def create_meeting_details(self, meeting_start: datetime, meeting_end: datetime, sender_email: str, recipients: List[dict], duration: int) -> MeetingDetails:
         name = "TEST Event Name"
-        summary = "TEST Summary"
+        description = "TEST Event Description"
 
         # Parse out id and email from recipients
         parsed_recipients = list(map(lambda recipient: (recipient['id'], recipient['email']), recipients))
         # Remove sender and bot from recipient list
         invitees = [recipient[1] for recipient in parsed_recipients if not search(BOT_REGEX, recipient[1]) and not recipient[1] == sender_email]
-
-        # TODO: Remove after debugging
-        print(f"Duration4: {duration}")
-        print(f"START: {meeting_start}\nEND: {meeting_end}")
-        print(f"Parsed Recipients: {parsed_recipients}")
-        print(f"Invitees: {invitees}")
         
         meeting = self.MeetingDetails(
-                sender_email=sender_email,
-                invitees=invitees,
-                meeting_start=meeting_start,
-                meeting_end=meeting_end,
-                length_minutes=int(duration),
-                name=name,
-                summary=summary)
+                name = name,
+                location = VIRTUAL_RC,
+                description = description,
+                meeting_start = meeting_start,
+                meeting_end = meeting_end,
+                length_minutes = int(duration),
+                sender_email = sender_email,
+                invitees = invitees)
 
         return meeting
 
@@ -213,8 +201,8 @@ class CalendarBotHandler(object):
         # Append meeting data to Event object
         event = Event()
         event.name = meeting.name
-        event.location = VIRTUAL_RC
-        event.description = meeting.summary
+        event.location = meeting.location
+        event.description = meeting.description
         event.begin = meeting.meeting_start
         event.end =  meeting.meeting_end
         event.organizer = meeting.sender_email
@@ -242,6 +230,14 @@ class CalendarBotHandler(object):
         except:
             # TODO: find/create better error
             raise FileNotFoundError
+
+    
+    def send_google_event_invite(self, meeting_details: MeetingDetails) -> str:
+        try:
+            GcalMeeting(meeting_details).send_event()
+            return "Google event successfully created!"
+        except AuthenticationError: 
+            return "Google authentication could not be completed. Please reach out to bot owner to reauthenticate."
     
 
     def clear_storage(self, bot_handler: BotHandler) -> None:
@@ -251,36 +247,5 @@ class CalendarBotHandler(object):
 
         return
 
-
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-    def create_and_send_meeting(self, cal, datetime_input, length_minutes=30):
-        try:
-            meeting_details = self.parse_meeting_details(datetime_input, length_minutes)
-            self.create_calendar_event(meeting_details, cal)
-            self.send_google_event_invite(meeting_details)
-            self.send_event_file(cal)
-        except:
-            logging.exception('Error occurred during parsing.')
-            self.input_error_reply()
-
-
-    def send_google_event_invite(self,meeting_details):
-        try:
-            GcalMeeting(meeting_details).send_event()
-        except AuthenticationError: 
-            self.authentication_error_reply()
-    
-
-    def authentication_error_reply(self):
-        response = "Google authentication could not be completed. Please reach out to bot owner to reauthenticate."
-        self.bot_handler.send_reply(self.message,response)
-        
-    def input_error_reply(self):
-        logging.error(f"User entered:{self.message['content']} - parsing failed")
-        response = "Sorry - I didn't understand that. Please use syntax '[<time:] [duration in minutes, default is 30] '"
-        self.bot_handler.send_reply(self.message,response)
-          
 
 handler_class = CalendarBotHandler
