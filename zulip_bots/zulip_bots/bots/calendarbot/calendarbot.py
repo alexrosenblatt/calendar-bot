@@ -141,6 +141,7 @@ class CalendarBotHandler(object):
             #TODO find/create better error
             raise FileNotFoundError 
 
+
     def authentication_error_reply(self):
         response = "Google authentication could not be completed. Please reach out to bot owner to reauthenticate."
         self.bot_handler.send_reply(self.message,response)

@@ -28,6 +28,7 @@ CREDS_FILE = "zulip_bots/zulip_bots/bots/calendarbot/creds.json"
 BOT_CALENDAR_ID = (
     "5edeaa7e7808543c6f5b1f64433d135e618cc3cad5d2c2f2df2b452c81957459@group.calendar.google.com"
 )
+TOKEN_FILE = "token.json"
 
 
 def authenticate_google():
@@ -39,8 +40,8 @@ def authenticate_google():
         # The file token.json stores the user's access and refresh tokens, and is
         # created automatically when the authorization flow completes for the first
         # time.
-        if os.path.exists("token.json"):
-            creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+        if os.path.exists(TOKEN_FILE):
+            creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
             logging.debug("Cred token found. Using existing credentials")
         # If there are no (valid) credentials available, let the user log in.
         if not creds or not creds.valid:
@@ -53,7 +54,7 @@ def authenticate_google():
                 creds = flow.run_local_server(port=8080)
                 creds = creds
             # Save the credentials for the next run
-            with open("token.json", "w") as token:
+            with open(TOKEN_FILE, "w") as token:
                 token.write(creds.to_json())
     except:
         logging.exception("Error occurred during google authentication.")
@@ -77,7 +78,7 @@ class GcalMeeting:
 
     def authenticate_with_token(self):
         try:
-            creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+            creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
         except:
             logging.debug("Cred file cannot be loaded.")
             raise AuthenticationError
