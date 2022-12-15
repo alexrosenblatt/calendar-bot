@@ -64,6 +64,7 @@ class GcalMeeting:
         self.description: str = meeting_details.description
         self.meeting_start: str = meeting_details.meeting_start.isoformat()
         self.meeting_end: str = meeting_details.meeting_end.isoformat()
+        # TODO: Add sender_email to attendee list
         self.attendees: list[dict[str, str]] = [
             {"email": invitee} for invitee in meeting_details.invitees
         ]

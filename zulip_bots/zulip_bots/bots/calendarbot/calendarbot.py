@@ -78,13 +78,12 @@ class CalendarBotHandler(object):
 
         # Parse the second message for the meeting info confirmation
         elif confirmation is None and starttime:
-            # try:
-            #     # Q: Passing in values vs another request to bot_handler
-            #     bot_response = self.parse_second_message(message, bot_handler, starttime, duration, cal)
-            # except: 
-            #     bot_response = f"Could not parse confirmation message: '{message['content']}'. Please message CalendarBot with 'Y' / 'N' to confirm <time:{starttime}>"
-
-            bot_response = self.parse_second_message(message, bot_handler, starttime, cal, duration)
+            try:
+                # Q: Passing in values vs another request to bot_handler
+                bot_response = self.parse_second_message(message, bot_handler, starttime, duration, cal)
+            except: 
+                # TODO: Target more specific errors
+                bot_response = f"Could not parse confirmation message: '{message['content']}'. Please message CalendarBot with 'Y' / 'N' to confirm <time:{starttime}>"
 
             bot_handler.send_reply(message, bot_response)
 
