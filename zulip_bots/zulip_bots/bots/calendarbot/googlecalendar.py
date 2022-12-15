@@ -5,6 +5,7 @@ import os.path
 from dataclasses import dataclass
 from datetime import datetime, time
 
+# TODO: Google packages (google-api-python-client, google-auth-oauthlib) need to be installed into venv
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow

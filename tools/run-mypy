@@ -35,6 +35,8 @@ exclude = [
 # These files will be included even if excluded by a rule above.
 force_include = [
     # Include bots that we migrate to mypy.
+    "zulip_bots/zulip_bots/bots/calendarbot/calendarbot.py",
+    "zulip_bots/zulip_bots/bots/calendarbot/googlecalendar.py",
     "zulip_bots/zulip_bots/bots/helloworld/helloworld.py",
     "zulip_bots/zulip_bots/bots/helloworld/test_helloworld.py",
     "zulip_bots/zulip_bots/bots/followup/followup.py",
