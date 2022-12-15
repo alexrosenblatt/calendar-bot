@@ -146,7 +146,7 @@ class CalendarBotHandler(object):
 
         filtered_args = self.message_content_helper(message)
         confirmation = filtered_args[0]
-        logging.exception("Parsing failed", duration)
+
         if confirmation == "y":
             duration = int(duration)
             meeting_start, meeting_end = self.parse_datetime_input(starttime, duration)
@@ -203,9 +203,7 @@ class CalendarBotHandler(object):
         )
         # Remove sender and bot from recipient list
         invitees = [
-            recipient[1]
-            for recipient in parsed_recipients
-            if not search(BOT_REGEX, recipient[1]) and not recipient[1] == sender_email
+            recipient[1] for recipient in parsed_recipients if not search(BOT_REGEX, recipient[1])
         ]
 
         meeting = self.MeetingDetails(
