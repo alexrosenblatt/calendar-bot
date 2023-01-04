@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from re import search
 from datetime import datetime, timedelta
-from tempfile import TemporaryFile
+
 
 from ics import Attendee, Calendar, Event
 from zulip_bots.lib import BotHandler
@@ -122,7 +122,7 @@ class CalendarBotHandler(object):
                 duration = int(filtered_args[1])
                 bot_handler.storage.put("duration", duration)
         except:
-            return f"Could not parse duration input {filtered_args[1]}"
+            return f"Could not parse duration input {filtered_args[1]}"  # TODO return error with
 
         time = filtered_args[0].replace("<time:", "").replace(">", "")
         bot_handler.storage.put("starttime", time)
@@ -203,7 +203,9 @@ class CalendarBotHandler(object):
         )
         # Remove sender and bot from recipient list
         invitees = [
-            recipient[1] for recipient in parsed_recipients if not search(BOT_REGEX, recipient[1])
+            recipient[1]
+            for recipient in parsed_recipients
+            if not search(BOT_REGEX, recipient[1]) and not recipient[1] == sender_email
         ]
 
         meeting = self.MeetingDetails(
@@ -244,6 +246,7 @@ class CalendarBotHandler(object):
                 my_file.writelines(cal.serialize_iter())
 
             # Re-opening file due to issue with empty file when performing operation in the same context-manager
+            # TODO figure out how to avoid collisions on the same files when multiple users use this @ alex
             with open("my.ics", "r+") as my_file:
                 result = bot_handler.upload_file(my_file)
                 response = f"[Meeting Invite]({result['uri']})."

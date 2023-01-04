@@ -27,6 +27,7 @@ BOT_CALENDAR_ID = (
 
 def authenticate_google():
     # TODO: We need to prevent the authenticate refresh flow from running for end users
+    # TODO: write tests for this @Alex
 
     try:
         global creds
@@ -46,7 +47,6 @@ def authenticate_google():
                 logging.debug("No credentials found - Initiating authentication flow")
                 flow = InstalledAppFlow.from_client_secrets_file(CREDS_FILE, SCOPES)
                 creds = flow.run_local_server(port=8080)
-                creds = creds
             # Save the credentials for the next run
             with open("token.json", "w") as token:
                 token.write(creds.to_json())
@@ -69,20 +69,20 @@ class GcalMeeting:
             {"email": invitee} for invitee in meeting_details.invitees
         ]
 
+        # add sender email back into invitee list
+        self.attendees.append({"email": meeting_details.sender_email})  # TODO test this
 
         self.calendar = build("calendar", "v3", credentials=self.creds)
 
         self.parsed_details = self.create_gcal_event()
 
-
     def authenticate_with_token(self):
         try:
             creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+            return creds
         except:
             logging.debug("Cred file cannot be loaded.")
             raise AuthenticationError
-        return creds
-
 
     def send_event(self):
         try:
@@ -99,7 +99,6 @@ class GcalMeeting:
 
         except HttpError as error:
             logging.exception("An error occurred: %s" % error)
-
 
     def create_gcal_event(self) -> dict:
         return {
@@ -127,4 +126,5 @@ class AuthenticationError(Exception):
     """
     Raised when google calendar authentication cannot be completed.
     """
+
     ...
