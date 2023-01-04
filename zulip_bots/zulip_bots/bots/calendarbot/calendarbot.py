@@ -242,7 +242,7 @@ class CalendarBotHandler(object):
         self, message: Dict[str, Any], bot_handler: BotHandler, cal: Calendar
     ) -> None:
         try:
-            with open("my.ics", "r+") as my_file:
+            with open("my.ics", "w+") as my_file:
                 my_file.writelines(cal.serialize_iter())
 
             # Re-opening file due to issue with empty file when performing operation in the same context-manager
