@@ -57,3 +57,5 @@ botserverrc
 # Pycharm
 \.DS_Store
 \.idea/
+token2.json
+token.json
