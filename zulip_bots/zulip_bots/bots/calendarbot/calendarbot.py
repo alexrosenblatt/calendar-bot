@@ -1,4 +1,5 @@
 import logging
+import random
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
@@ -24,6 +25,13 @@ BOT_REGEX = "(.*\*\*.*|.*bot.*)"  # type: ignore
 TIME_FORMAT = "^(<time).*(>)$"
 DEFAULT_EVENT_DURATION = 30
 VIRTUAL_RC = "https://recurse.rctogether.com/"
+COFFEE_EMOJI = [
+    "🫖",
+    "🍵",
+    "☕",
+    "♨️",
+]
+PAIRING_EMOJI = ["💬", "👥", "💭", "📣"]
 
 
 class MeetingTypes(Enum):
@@ -73,7 +81,6 @@ class CalendarBotHandler(object):
         confirmation = storage.get("confirmation")
         starttime = storage.get("starttime")
         duration = storage.get("duration")
-        meeting_type = storage.get("meeting_type")
 
         # TODO: Instantiating Calendar here for now due to bug when trying to move it to init, works but may cause issues in future
         cal = Calendar()
@@ -183,11 +190,14 @@ class CalendarBotHandler(object):
             recipient_names = ",".join(recipient_names)
             meeting_type = bot_handler.storage.get("meeting_type")
             if meeting_type == MeetingTypes.COFFEE_CHAT.value:
-                meeting_name = f"Coffee Chat with {recipient_names}"
+                emoji = random.choice(COFFEE_EMOJI)
+                meeting_name = f"{emoji} Coffee Chat with {recipient_names} {emoji}"
             elif meeting_type == MeetingTypes.PAIRING.value:
-                meeting_name = f"Pairing with {recipient_names}"
+                emoji = random.choice(PAIRING_EMOJI)
+                meeting_name = f"{emoji} Pairing with {recipient_names} {emoji}"
             else:
-                meeting_name = f"Meeting with {recipient_names}"
+                emoji = random.choice(PAIRING_EMOJI)
+                meeting_name = f"{emoji}Meeting with {recipient_names}{emoji}"
             return meeting_name
 
         if confirmation == "y":
