@@ -20,7 +20,7 @@ logging.basicConfig(
 
 
 # TODO: Take this from environment variables in the future
-BOT_REGEX = "(.*\*\*.*|.*bot.*)"
+BOT_REGEX = "(.*\*\*.*|.*bot.*)"  # type: ignore
 TIME_FORMAT = "^(<time).*(>)$"
 DEFAULT_EVENT_DURATION = 30
 VIRTUAL_RC = "https://recurse.rctogether.com/"
@@ -88,7 +88,7 @@ class CalendarBotHandler(object):
             try:
                 # Q: Passing in values vs another request to bot_handler
                 bot_response = self.parse_second_message(
-                    message, bot_handler, starttime, cal, duration, meeting_type
+                    message, bot_handler, starttime, cal, meeting_type, duration
                 )
             except:
                 # TODO: Target more specific errors
@@ -112,6 +112,7 @@ class CalendarBotHandler(object):
         duration = DEFAULT_EVENT_DURATION
 
         def set_duration(duration):
+            print(duration)
             try:
                 bot_handler.storage.put("duration", int(duration))
             except:
@@ -183,6 +184,7 @@ class CalendarBotHandler(object):
         meeting_name = set_meeting_title(meeting_type)
 
         if confirmation == "y":
+            print(duration)
             duration = int(duration)
             meeting_start, meeting_end = self.parse_datetime_input(starttime, duration)
             meeting_details = self.create_meeting_details(
@@ -265,7 +267,7 @@ class CalendarBotHandler(object):
         event.description = meeting.description
         event.begin = meeting.meeting_start
         event.end = meeting.meeting_end
-        event.organizer = meeting.sender_email
+        event.organizer = meeting.sender_email  # type: ignore
 
         # Create attendee list
         for invitee in meeting.invitees:
@@ -284,7 +286,7 @@ class CalendarBotHandler(object):
             # Re-opening file due to issue with empty file when performing operation in the same context-manager
             # TODO figure out how to avoid collisions on the same files when multiple users use this @ alex
             with open("my.ics", "r+") as my_file:
-                result = bot_handler.upload_file(my_file)
+                result = bot_handler.upload_file(my_file)  # type: ignore
                 response = f"[Meeting Invite]({result['uri']})."
                 bot_handler.send_reply(message, response)
                 # erase file before close
