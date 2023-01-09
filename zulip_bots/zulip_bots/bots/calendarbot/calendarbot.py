@@ -170,9 +170,13 @@ class CalendarBotHandler(object):
         confirmation = filtered_args[0]
 
         def set_meeting_title(meeting_type):
-            recipient_names = []
-            for names in message["display_recipient"]:
-                recipient_names.append(names)
+            recipient_names = [
+                names["full_name"]
+                for names in message["display_recipient"]
+                if not search(BOT_REGEX, names["email"])
+            ]
+
+            recipient_names = ",".join(recipient_names)
             if meeting_type == MeetingTypes.COFFEE_CHAT:
                 meeting_name = f"Coffee Chat with {recipient_names}"
             elif meeting_type == MeetingTypes.PAIRING:
