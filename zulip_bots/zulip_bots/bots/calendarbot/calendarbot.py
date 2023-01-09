@@ -1,19 +1,16 @@
 import logging
-from typing import Any, Dict, List, Optional, Union
 from dataclasses import dataclass
-
-from re import search
 from datetime import datetime, timedelta
-
+from enum import Enum
+from re import search
+from typing import Any, Dict, List, Optional, Union
 
 from ics import Attendee, Calendar, Event
-from zulip_bots.lib import BotHandler
-from zulip_bots.bots.calendarbot.googlecalendar import (
-    GcalMeeting as GcalMeeting,
-    authenticate_google,
-    AuthenticationError,
-)
 
+from zulip_bots.bots.calendarbot.googlecalendar import AuthenticationError
+from zulip_bots.bots.calendarbot.googlecalendar import GcalMeeting as GcalMeeting
+from zulip_bots.bots.calendarbot.googlecalendar import authenticate_google
+from zulip_bots.lib import BotHandler
 
 logging.basicConfig(
     filename="zulip_bots/zulip_bots/bots/calendarbot/calendarbot.log",
@@ -27,6 +24,11 @@ BOT_REGEX = "(.*\*\*.*|.*bot.*)"
 TIME_FORMAT = "^(<time).*(>)$"
 DEFAULT_EVENT_DURATION = 30
 VIRTUAL_RC = "https://recurse.rctogether.com/"
+
+
+class MeetingTypes(Enum):
+    PAIRING = 1
+    COFFEE_CHAT = 2
 
 
 class CalendarBotHandler(object):
@@ -55,12 +57,15 @@ class CalendarBotHandler(object):
             storage.put("starttime", None)
         if not storage.contains("duration"):
             storage.put("duration", 0)
+        if not storage.contains("meeting_type"):
+            storage.put("meeting_type", None)
 
     def usage(self) -> str:
         return (
             "Calendar Bot creates a calendar meeting for all participants on chat. "
             "Enter a Zulip global time `<time` and then a duration in minutes (e.g. 60 for 1 hour). "
             "Default event duration is 30 mins and default email addresses are from user accounts. "
+            "Optionally, append 'coffee' or 'pairing' to customize the meeting type."
         )
 
     def handle_message(self, message: Dict[str, Any], bot_handler: BotHandler) -> None:
@@ -68,6 +73,7 @@ class CalendarBotHandler(object):
         confirmation = storage.get("confirmation")
         starttime = storage.get("starttime")
         duration = storage.get("duration")
+        meeting_type = storage.get("meeting_type")
 
         # TODO: Instantiating Calendar here for now due to bug when trying to move it to init, works but may cause issues in future
         cal = Calendar()
@@ -82,7 +88,7 @@ class CalendarBotHandler(object):
             try:
                 # Q: Passing in values vs another request to bot_handler
                 bot_response = self.parse_second_message(
-                    message, bot_handler, starttime, cal, duration
+                    message, bot_handler, starttime, cal, duration, meeting_type
                 )
             except:
                 # TODO: Target more specific errors
@@ -105,24 +111,38 @@ class CalendarBotHandler(object):
         num_args = len(filtered_args)
         duration = DEFAULT_EVENT_DURATION
 
+        def set_duration(duration):
+            try:
+                bot_handler.storage.put("duration", int(duration))
+            except:
+                return (
+                    f"Could not parse duration input {filtered_args[1]}"  # TODO return error with
+                )
+
+        def set_meeting_type(meeting_type):
+            try:
+                bot_handler.storage.put("type", int(meeting_type))
+            except:
+                return f"Could not parse duration input {filtered_args[1]}"
+
         # Validate args Zulip global time and duration
         if not num_args or filtered_args[0] == "help":
             return self.usage()
         elif filtered_args[0] == "auth":
             authenticate_google()
             return "Authenticating Google token..."
-        elif num_args > 2:
-            return f"Expected at most 2 arguments, received {num_args}"
+        elif num_args > 3:
+            return f"Expected at most 3 arguments, received {num_args}"
 
         if not search(TIME_FORMAT, filtered_args[0]):
             return f"Could not parse '{message['content']}'. Please pass in a Zulip global time `<time`"
 
-        try:
-            if num_args == 2:
-                duration = int(filtered_args[1])
-                bot_handler.storage.put("duration", duration)
-        except:
-            return f"Could not parse duration input {filtered_args[1]}"  # TODO return error with
+        if num_args == 2:
+            set_duration(filtered_args[1])
+
+        elif num_args == 3:
+            set_duration(filtered_args[1])
+            set_meeting_type(filtered_args[2])
 
         time = filtered_args[0].replace("<time:", "").replace(">", "")
         bot_handler.storage.put("starttime", time)
@@ -138,6 +158,7 @@ class CalendarBotHandler(object):
         bot_handler: BotHandler,
         starttime: str,
         cal: Calendar,
+        meeting_type: MeetingTypes = MeetingTypes.COFFEE_CHAT,
         duration: Union[str, int] = DEFAULT_EVENT_DURATION,
     ) -> str:
         """
@@ -146,6 +167,20 @@ class CalendarBotHandler(object):
 
         filtered_args = self.message_content_helper(message)
         confirmation = filtered_args[0]
+
+        def set_meeting_title(meeting_type):
+            recipient_names = []
+            for names in message["display_recipient"]:
+                recipient_names.append(names)
+            if meeting_type == MeetingTypes.COFFEE_CHAT:
+                meeting_name = f"Coffee Chat with {recipient_names}"
+            elif meeting_type == MeetingTypes.PAIRING:
+                meeting_name = f"Pairing with {recipient_names}"
+            else:
+                meeting_name = f"Meeting with {recipient_names}"
+            return meeting_name
+
+        meeting_name = set_meeting_title(meeting_type)
 
         if confirmation == "y":
             duration = int(duration)
@@ -156,6 +191,7 @@ class CalendarBotHandler(object):
                 message["sender_email"],
                 message["display_recipient"],
                 duration,
+                name=meeting_name,
             )
 
             # Create event ics file for download
@@ -193,8 +229,8 @@ class CalendarBotHandler(object):
         sender_email: str,
         recipients: List[dict],
         duration: int,
+        name,
     ) -> MeetingDetails:
-        name = "TEST Event Name"
         description = "TEST Event Description"
 
         # Parse out id and email from recipients
