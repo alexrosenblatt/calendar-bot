@@ -71,6 +71,7 @@ class GcalMeeting:
         ]
         # add sender email back into invitee list
         self.attendees.append({"email": meeting_details.sender_email})  # TODO test this
+        self.auth_and_create_google_calendar()
 
     def auth_and_create_google_calendar(self):
         creds = self.authenticate_with_token()
