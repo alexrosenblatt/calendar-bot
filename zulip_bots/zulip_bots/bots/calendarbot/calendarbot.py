@@ -17,7 +17,8 @@ from zulip_bots.lib import BotHandler
 
 
 logging.basicConfig(filename="calendarbot.log", encoding="utf-8", level=logging.DEBUG, force=True)
-
+# shortening logging syntax
+log = logging.debug
 
 # TODO: Take this from environment variables in the future
 BOT_REGEX = "(.*\*\*.*|.*bot.*)"  # type: ignore
@@ -31,6 +32,8 @@ COFFEE_EMOJI = [
     "♨️",
 ]
 PAIRING_EMOJI = ["💬", "👥", "💭", "📣"]
+
+# load coffee chat questions
 with open("icebreakers.txt", "r+") as ice:
     QUESTIONS = [f.rstrip("/n") for f in ice]
 
@@ -78,6 +81,7 @@ class CalendarBotHandler(object):
         )
 
     def handle_message(self, message: Dict[str, Any], bot_handler: BotHandler) -> None:
+        log(f"Message Body: {message}")
         storage = bot_handler.storage
         confirmation = storage.get("confirmation")
         starttime = storage.get("starttime")
@@ -87,11 +91,13 @@ class CalendarBotHandler(object):
 
         # Parse the initial message containing the event time and duration info
         if confirmation is None and starttime is None:
+            log("Initial message recieved - starting session")
             bot_response = self.parse_first_message(message, bot_handler)
             bot_handler.send_reply(message, bot_response)
 
         # Parse the second message for the meeting info confirmation
         elif confirmation is None and starttime:
+            log("Second message recieved - triggering confirmation step.")
             try:
                 # Q: Passing in values vs another request to bot_handler
                 bot_response = self.parse_second_message(
@@ -100,7 +106,7 @@ class CalendarBotHandler(object):
             except:
                 # TODO: Target more specific errors
                 bot_response = f"Could not parse confirmation message: '{message['content']}'. Please message CalendarBot with 'Y' / 'N' to confirm <time:{starttime}>"
-                logging.exception("Message parsing failed")
+                logging.exception("Confirmation message parsing failed", exc_info=True)
 
             bot_handler.send_reply(message, bot_response)
 
@@ -117,14 +123,13 @@ class CalendarBotHandler(object):
         filtered_args = self.message_content_helper(message)
         num_args = len(filtered_args)
         duration = DEFAULT_EVENT_DURATION
+        log(f"filtered_args:{filtered_args}")
 
         def set_duration(duration):
             try:
                 bot_handler.storage.put("duration", int(duration))
             except:
-                return (
-                    f"Could not parse duration input {filtered_args[1]}"  # TODO return error with
-                )
+                return f"Could not parse duration input {filtered_args[1]}. Enter a Zulip global time `<time` and then a duration in minutes (e.g. 60 for 1 hour)."  # TODO return error with
 
         def set_meeting_type(meeting_type):
             try:
@@ -139,20 +144,21 @@ class CalendarBotHandler(object):
         if not num_args or filtered_args[0] == "help":
             return self.usage()
         elif filtered_args[0] == "auth":
+            # add google logging in google module
             authenticate_google()
             return "Authenticating Google token..."
         elif num_args > 3:
-            return f"Expected at most 3 arguments, received {num_args}"
+            return f"Expected at most 3 arguments, received {num_args}. Enter a Zulip global time `<time` and then a duration in minutes (e.g. 60 for 1 hour)."
 
         if not search(TIME_FORMAT, filtered_args[0]):
             return f"Could not parse '{message['content']}'. Please pass in a Zulip global time `<time`"
 
         if num_args == 2:
-            logging.debug(f"Only duration argument: {filtered_args[1]}")
+            log(f"Recieved duration argument: {filtered_args}")
             set_duration(filtered_args[1])
 
         elif num_args == 3:
-            logging.debug(f"Duration and meeting type argument: {filtered_args[1]}")
+            log(f"Recieved duration and meeting_type argument: {filtered_args}")
             set_duration(filtered_args[1])
             set_meeting_type(filtered_args[2])
 
@@ -184,6 +190,8 @@ class CalendarBotHandler(object):
                 if not search(BOT_REGEX, names["email"])
             ]
 
+            log(f"Parsed Recipient names: {recipient_names}")
+
             recipient_names = ",".join(recipient_names)
 
             meeting_type = bot_handler.storage.get("meeting_type")
@@ -192,7 +200,7 @@ class CalendarBotHandler(object):
             if meeting_type == MeetingTypes.COFFEE_CHAT.value:
                 emoji = random.choice(COFFEE_EMOJI)
                 meeting_name = f"{emoji} Coffee Chat with {recipient_names} {emoji}"
-                description = f"<b>Ideas for some fun questions to ask in your coffee chat:</b><br>-{random.choice(QUESTIONS)}<br>-{random.choice(QUESTIONS)}<br>-{random.choice(QUESTIONS)}"
+                description = f"<b>Ideas for some fun questions to ask in your coffee chat:</b>-{random.choice(QUESTIONS)}-{random.choice(QUESTIONS)}-{random.choice(QUESTIONS)}"
             elif meeting_type == MeetingTypes.PAIRING.value:
                 emoji = random.choice(PAIRING_EMOJI)
                 meeting_name = f"{emoji} Pairing with {recipient_names} {emoji}"
@@ -200,7 +208,7 @@ class CalendarBotHandler(object):
             else:
                 emoji = random.choice(PAIRING_EMOJI)
                 meeting_name = f"{emoji}Meeting with {recipient_names}{emoji}"
-                description = f"<b>Ideas for an icebreaker or fun question to ask in your meeting:</b><br>-{random.choice(QUESTIONS)}<br>-{random.choice(QUESTIONS)}<br>-{random.choice(QUESTIONS)}"
+                description = f"<b>Ideas for an icebreaker or fun question to ask in your meeting:</b>-{random.choice(QUESTIONS)}-{random.choice(QUESTIONS)}-{random.choice(QUESTIONS)}"
             return meeting_name, description
 
         filtered_args = self.message_content_helper(message)
@@ -209,6 +217,7 @@ class CalendarBotHandler(object):
         name, description = set_meeting_title()
 
         if confirmation == "y":
+            log("Details confirmed by user")
             duration = int(duration)
             meeting_start, meeting_end = self.parse_datetime_input(starttime, duration)
             meeting_details = self.create_meeting_details(
@@ -232,11 +241,13 @@ class CalendarBotHandler(object):
             return google_response
 
         elif confirmation == "n":
+            log("Confirmation denied by user")
             self.clear_storage(bot_handler)
 
             return "Got it! I will remove any saved event data."
 
         else:
+            log(f"User confirmation failed: {message}")
             raise TypeError
 
     def parse_datetime_input(self, starttime: str, duration: int) -> tuple[datetime, datetime]:
@@ -281,18 +292,24 @@ class CalendarBotHandler(object):
             sender_email=sender_email,
             invitees=invitees,
         )
-
+        log(f"Created meeting details object: {meeting}")
         return meeting
 
     def create_ics_event(self, meeting: MeetingDetails, cal: Calendar) -> None:
         # Append meeting data to Event object
         event = Event()
-        event.name = meeting.name
-        event.location = meeting.location
-        event.description = meeting.description
-        event.begin = meeting.meeting_start
-        event.end = meeting.meeting_end
-        event.organizer = meeting.sender_email  # type: ignore
+        try:
+            event.name = meeting.name
+            event.location = meeting.location
+            event.description = meeting.description
+            event.begin = meeting.meeting_start
+            event.end = meeting.meeting_end
+            event.organizer = meeting.sender_email  # type: ignore
+        except ValueError:
+            logging.exception(
+                "ICS creation failed - end and duration are specified at the same time",
+                exc_info=True,
+            )
 
         # Create attendee list
         for invitee in meeting.invitees:
@@ -314,10 +331,12 @@ class CalendarBotHandler(object):
                 result = bot_handler.upload_file(my_file)  # type: ignore
                 response = f"Here is your ICS file: [Meeting Invite]({result['uri']})."
                 bot_handler.send_reply(message, response)
+                log("Succesfully uploaded ICS file")
                 # erase file before close
                 my_file.truncate(0)
         except:
             # TODO: find/create better error
+            log("ICS file not found")
             raise FileNotFoundError
 
     def send_google_event_invite(self, meeting_details: MeetingDetails) -> str:
@@ -325,6 +344,7 @@ class CalendarBotHandler(object):
             GcalMeeting(meeting_details).send_event()
             return f"{meeting_details.name} at <time:{meeting_details.meeting_start}> successfully created!"
         except AuthenticationError:
+            log("Google meeting not created - Google could not authenticate.")
             return "Google authentication could not be completed. Please reach out to bot owner to reauthenticate."
 
     def clear_storage(self, bot_handler: BotHandler) -> None:
