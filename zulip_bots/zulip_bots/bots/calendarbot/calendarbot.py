@@ -76,7 +76,7 @@ class CalendarBotHandler(object):
             "Calendar Bot creates a calendar meeting for all participants on chat. "
             "Enter a Zulip global time `<time` and then a duration in minutes (e.g. 60 for 1 hour). "
             "Default event duration is 30 mins and default email addresses are from user accounts. "
-            "Optionally, append 'coffee' or 'pairing' to customize the meeting type."
+            "Optionally, append 'coffee' or 'pairing' to customize the meeting description."
         )
 
     def handle_message(self, message: Dict[str, Any], bot_handler: BotHandler) -> None:
@@ -136,7 +136,7 @@ class CalendarBotHandler(object):
                 elif meeting_type.lower() == "coffee":
                     bot_handler.storage.put("meeting_type", MeetingTypes.COFFEE_CHAT.value)
             except:
-                return f"Could not parse duration input {filtered_args[1]}"
+                return f"Could not parse meeting type input: {filtered_args[2]}. Use 'pairing' or 'coffee' to indicate meeting type. "
 
         # Validate args Zulip global time and duration
         if not num_args or filtered_args[0] == "help":
@@ -180,6 +180,7 @@ class CalendarBotHandler(object):
         """
 
         def set_meeting_title() -> tuple[str, str | None]:
+            # extracts names from the message body, excluding the bot
             recipient_names = [
                 names["full_name"]
                 for names in message["display_recipient"]
@@ -187,7 +188,10 @@ class CalendarBotHandler(object):
             ]
 
             recipient_names = ",".join(recipient_names)
+
             meeting_type = bot_handler.storage.get("meeting_type")
+
+            # alters description based on meeting type, if no meeting type set defaults to a generic coffee like description
             if meeting_type == MeetingTypes.COFFEE_CHAT.value:
                 emoji = random.choice(COFFEE_EMOJI)
                 meeting_name = f"{emoji} Coffee Chat with {recipient_names} {emoji}"
@@ -204,6 +208,7 @@ class CalendarBotHandler(object):
 
         filtered_args = self.message_content_helper(message)
         confirmation = filtered_args[0]
+
         name, description = set_meeting_title()
 
         if confirmation == "y":
