@@ -51,7 +51,7 @@ class CalendarBotHandler(object):
     class MeetingDetails:
         name: str
         location: str
-        description: str
+        description: str | None
         meeting_start: datetime
         meeting_end: datetime
         length_minutes: int
@@ -255,7 +255,7 @@ class CalendarBotHandler(object):
         recipients: List[dict],
         duration: int,
         name: str,
-        description: str,
+        description: str | None,
     ) -> MeetingDetails:
 
         # Parse out id and email from recipients
