@@ -200,7 +200,7 @@ class CalendarBotHandler(object):
             if meeting_type == MeetingTypes.COFFEE_CHAT.value:
                 emoji = random.choice(COFFEE_EMOJI)
                 meeting_name = f"{emoji} Coffee Chat with {recipient_names} {emoji}"
-                description = f"<b>Ideas for some fun questions to ask in your coffee chat:</b>-{random.choice(QUESTIONS)}-{random.choice(QUESTIONS)}-{random.choice(QUESTIONS)}"
+                description = f"<b>Ideas for some fun questions to ask in your coffee chat:</b><br>-{random.choice(QUESTIONS)}-{random.choice(QUESTIONS)}-{random.choice(QUESTIONS)}"
             elif meeting_type == MeetingTypes.PAIRING.value:
                 emoji = random.choice(PAIRING_EMOJI)
                 meeting_name = f"{emoji} Pairing with {recipient_names} {emoji}"
@@ -208,7 +208,7 @@ class CalendarBotHandler(object):
             else:
                 emoji = random.choice(PAIRING_EMOJI)
                 meeting_name = f"{emoji}Meeting with {recipient_names}{emoji}"
-                description = f"<b>Ideas for an icebreaker or fun question to ask in your meeting:</b>-{random.choice(QUESTIONS)}-{random.choice(QUESTIONS)}-{random.choice(QUESTIONS)}"
+                description = f"<b>Ideas for an icebreaker or fun question to ask in your meeting:</b><br>-{random.choice(QUESTIONS)}-{random.choice(QUESTIONS)}-{random.choice(QUESTIONS)}"
             return meeting_name, description
 
         filtered_args = self.message_content_helper(message)
