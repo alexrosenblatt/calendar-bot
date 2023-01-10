@@ -1,4 +1,5 @@
 import logging
+
 import random
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -14,12 +15,9 @@ from zulip_bots.bots.calendarbot.googlecalendar import authenticate_google
 from zulip_bots.bots.calendarbot.pairingcontent import PAIRING_CONTENT
 from zulip_bots.lib import BotHandler
 
-logging.basicConfig(
-    filename="calendarbot.log",
-    filemode="w",
-    encoding="utf-8",
-    level=logging.DEBUG,
-)
+
+logging.basicConfig(filename="calendarbot.log", encoding="utf-8", level=logging.DEBUG, force=True)
+
 
 # TODO: Take this from environment variables in the future
 BOT_REGEX = "(.*\*\*.*|.*bot.*)"  # type: ignore
@@ -84,7 +82,6 @@ class CalendarBotHandler(object):
         confirmation = storage.get("confirmation")
         starttime = storage.get("starttime")
         duration = storage.get("duration")
-
         # TODO: Instantiating Calendar here for now due to bug when trying to move it to init, works but may cause issues in future
         cal = Calendar()
 
