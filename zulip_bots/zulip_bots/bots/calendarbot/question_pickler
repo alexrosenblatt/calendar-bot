@@ -1,0 +1,6 @@
+import pickle
+
+with open("icebreakers.txt", "r+") as ice:
+    f_list = [f.rstrip("/n") for f in ice]
+with open("pickled_questions", "wb") as fp:  # Pickling
+    pickle.dump(f_list, fp)
