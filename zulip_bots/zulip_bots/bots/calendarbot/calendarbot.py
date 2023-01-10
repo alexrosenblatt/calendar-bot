@@ -13,7 +13,7 @@ from zulip_bots.bots.calendarbot.googlecalendar import AuthenticationError
 from zulip_bots.bots.calendarbot.googlecalendar import GcalMeeting as GcalMeeting
 from zulip_bots.bots.calendarbot.googlecalendar import authenticate_google
 from zulip_bots.bots.calendarbot.pairingcontent import PAIRING_CONTENT
-from zulip_bots.lib import BotHandler, BotIdentity
+from zulip_bots.lib import BotHandler
 
 
 logging.basicConfig(filename="calendarbot.log", encoding="utf-8", level=logging.DEBUG, force=True)
@@ -141,9 +141,7 @@ class CalendarBotHandler(object):
                 return f"Could not parse meeting type input: {filtered_args[2]}. Use 'pairing' or 'coffee' to indicate meeting type. "
 
         # Validate args Zulip global time and duration
-        if filtered_args[0] == BotIdentity()
         if not num_args or filtered_args[0] == "help":
-
             return self.usage()
         elif filtered_args[0] == "auth":
             # add google logging in google module
