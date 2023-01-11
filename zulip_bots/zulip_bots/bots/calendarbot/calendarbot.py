@@ -341,7 +341,9 @@ class CalendarBotHandler(object):
 
     def send_google_event_invite(self, meeting_details: MeetingDetails) -> str:
         try:
-            GcalMeeting(meeting_details).send_event()
+            gmeeting = GcalMeeting(meeting_details)
+            gmeeting.auth_and_create_google_calendar()
+            gmeeting.send_event()
             return f"{meeting_details.name} at <time:{meeting_details.meeting_start}> successfully created!"
         except AuthenticationError:
             log("Google meeting not created - Google could not authenticate.")
