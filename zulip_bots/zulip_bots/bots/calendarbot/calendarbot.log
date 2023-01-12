@@ -96,3 +96,5 @@ DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_
 DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
 WARNING:werkzeug: * Debugger is active!
 INFO:werkzeug: * Debugger PIN: 141-202-557
+INFO:werkzeug: * Detected change in '/Users/alex/Documents/GitHub/calendar-bot/zulip_bots/zulip_bots/bots/calendarbot/calendarbot.py', reloading
+INFO:werkzeug: * Restarting with stat

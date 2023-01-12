@@ -32,9 +32,10 @@ COFFEE_EMOJI = [
     "♨️",
 ]
 PAIRING_EMOJI = ["💬", "👥", "💭", "📣"]
+ICEBREAKERS_PATH = "./zulip_bots/zulip_bots/bots/calendarbot/icebreakers.txt"
 
 # load coffee chat questions
-with open("icebreakers.txt", "r+") as ice:
+with open(ICEBREAKERS_PATH, "r+") as ice:
     QUESTIONS = [f.rstrip("/n") for f in ice]
 
 
