@@ -3,7 +3,7 @@ import os.path
 from dataclasses import dataclass
 
 # TODO: Google packages (google-api-python-client, google-auth-oauthlib) need to be installed into venv
-from google.auth.transport.requests import Request
+from google.auth.transport.requests import Request  # type ignore
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
@@ -23,6 +23,7 @@ CREDS_FILE = "./creds.json"
 BOT_CALENDAR_ID = (
     "5edeaa7e7808543c6f5b1f64433d135e618cc3cad5d2c2f2df2b452c81957459@group.calendar.google.com"
 )
+TOKEN_FILE = "token.json"
 
 
 def authenticate_google():
@@ -30,12 +31,11 @@ def authenticate_google():
     # TODO: write tests for this @Alex
 
     try:
-        global creds
         creds = None
         # The file token.json stores the user's access and refresh tokens, and is
         # created automatically when the authorization flow completes for the first
         # time.
-        if os.path.exists("token.json"):
+        if os.path.exists(TOKEN_FILE):
             creds = Credentials.from_authorized_user_file("token.json", SCOPES)
             logging.debug("Cred token found. Using existing credentials")
         # If there are no (valid) credentials available, let the user log in.
@@ -51,7 +51,9 @@ def authenticate_google():
                 flow = InstalledAppFlow.from_client_secrets_file(CREDS_FILE, SCOPES)
                 creds = flow.run_local_server(port=8080)
             # Save the credentials for the next run
-            with open("token.json", "w+") as token:
+
+            with open(TOKEN_FILE, "w+") as token:
+
                 token.write(creds.to_json())
     except:
         logging.exception("Error occurred during google authentication.")
@@ -61,7 +63,6 @@ def authenticate_google():
 @dataclass
 class GcalMeeting:
     def __init__(self, meeting_details) -> None:
-        self.creds = self.authenticate_with_token()
         self.name: str = meeting_details.name
         self.location = meeting_details.location
         self.description: str = meeting_details.description
@@ -71,17 +72,21 @@ class GcalMeeting:
         self.attendees: list[dict[str, str]] = [
             {"email": invitee} for invitee in meeting_details.invitees
         ]
-
         # add sender email back into invitee list
         self.attendees.append({"email": meeting_details.sender_email})  # TODO test this
 
-        self.calendar = build("calendar", "v3", credentials=self.creds)
+
+    def auth_and_create_google_calendar(self):
+        creds = self.authenticate_with_token()
+        self.calendar = build("calendar", "v3", credentials=creds)
 
         self.parsed_details = self.create_gcal_event()
 
     def authenticate_with_token(self):
         try:
-            creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+
+            creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+
             return creds
         except:
             logging.debug("Cred file cannot be loaded.")
