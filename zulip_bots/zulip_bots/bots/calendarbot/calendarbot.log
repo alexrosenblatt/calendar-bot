@@ -1,0 +1,100 @@
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): recurse.zulipchat.com:443
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "GET /api/v1/server_settings HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "GET /api/v1/users/me HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5002
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+INFO:werkzeug: * Restarting with stat
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): recurse.zulipchat.com:443
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "GET /api/v1/server_settings HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "GET /api/v1/users/me HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 141-202-557
+DEBUG:root:Message Body: {'id': 320736633, 'sender_id': 559535, 'content': '<time:2023-01-11T08:57:00-07:00> 30 coffee', 'recipient_id': 976924, 'timestamp': 1673452670, 'client': 'ZulipElectron', 'subject': '', 'topic_links': [], 'rendered_content': '<p><time datetime="2023-01-11T15:57:00Z">2023-01-11T08:57:00-07:00</time> 30 coffee</p>', 'is_me_message': False, 'reactions': [], 'submessages': [], 'sender_full_name': "Alex Rosenblatt (he) (W1'22)", 'sender_email': 'rosenblatt.alex@gmail.com', 'sender_realm_str': 'recurse', 'display_recipient': [{'id': 571358, 'email': 'calendarbot2-bot@recurse.zulipchat.com', 'full_name': 'Calendar Bot 2', 'is_mirror_dummy': False}, {'email': 'rosenblatt.alex@gmail.com', 'full_name': "Alex Rosenblatt (he) (W1'22)", 'id': 559535, 'is_mirror_dummy': False}], 'type': 'private', 'avatar_url': 'https://secure.gravatar.com/avatar/1668543e9727f682ef7fd2c9083c5d24?d=identicon&version=1', 'content_type': 'text/x-markdown', 'full_content': '<time:2023-01-11T08:57:00-07:00> 30 coffee'}
+DEBUG:root:Initial message recieved - starting session
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:root:filtered_args:['<time:2023-01-11t08:57:00-07:00>', '30', 'coffee']
+DEBUG:root:Recieved duration and meeting_type argument: ['<time:2023-01-11t08:57:00-07:00>', '30', 'coffee']
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "POST /api/v1/messages HTTP/1.1" 200 None
+INFO:werkzeug:127.0.0.1 - - [11/Jan/2023 08:57:51] "POST / HTTP/1.1" 200 -
+DEBUG:root:Message Body: {'id': 320736649, 'sender_id': 559535, 'content': 'Y', 'recipient_id': 976924, 'timestamp': 1673452674, 'client': 'ZulipElectron', 'subject': '', 'topic_links': [], 'rendered_content': '<p>Y</p>', 'is_me_message': False, 'reactions': [], 'submessages': [], 'sender_full_name': "Alex Rosenblatt (he) (W1'22)", 'sender_email': 'rosenblatt.alex@gmail.com', 'sender_realm_str': 'recurse', 'display_recipient': [{'id': 571358, 'email': 'calendarbot2-bot@recurse.zulipchat.com', 'full_name': 'Calendar Bot 2', 'is_mirror_dummy': False}, {'email': 'rosenblatt.alex@gmail.com', 'full_name': "Alex Rosenblatt (he) (W1'22)", 'id': 559535, 'is_mirror_dummy': False}], 'type': 'private', 'avatar_url': 'https://secure.gravatar.com/avatar/1668543e9727f682ef7fd2c9083c5d24?d=identicon&version=1', 'content_type': 'text/x-markdown', 'full_content': 'Y'}
+DEBUG:root:Second message recieved - triggering confirmation step.
+DEBUG:root:Parsed Recipient names: ["Alex Rosenblatt (he) (W1'22)"]
+DEBUG:root:Details confirmed by user
+DEBUG:root:Created meeting details object: CalendarBotHandler.MeetingDetails(name="🍵 Coffee Chat with Alex Rosenblatt (he) (W1'22) 🍵", location='https://recurse.rctogether.com/', description='<b>Ideas for some fun questions to ask in your coffee chat:</b><br>-Would you go in the mother-ship with aliens if they landed on Earth tomorrow?\n-Have you read any good books or seen any good movies lately?\n-What do your family and friends think you do all day?\n', meeting_start=datetime.datetime(2023, 1, 11, 8, 57, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=61200))), meeting_end=datetime.datetime(2023, 1, 11, 9, 27, tzinfo=datetime.timezone(datetime.timedelta(days=-1, seconds=61200))), length_minutes=30, sender_email='rosenblatt.alex@gmail.com', invitees=[])
+INFO:googleapiclient.discovery_cache:file_cache is only supported with oauth2client<4.0.0
+DEBUG:googleapiclient.discovery:URL being requested: POST https://www.googleapis.com/calendar/v3/calendars/5edeaa7e7808543c6f5b1f64433d135e618cc3cad5d2c2f2df2b452c81957459%40group.calendar.google.com/events?sendUpdates=all&alt=json
+DEBUG:google_auth_httplib2:Making request: POST https://oauth2.googleapis.com/token
+DEBUG:root:Event created: https://www.google.com/calendar/event?eid=bjA2c2U4cDU1ZzRvYWZtNTdrMXIxaGhjNTAgNWVkZWFhN2U3ODA4NTQzYzZmNWIxZjY0NDMzZDEzNWU2MThjYzNjYWQ1ZDJjMmYyZGYyYjQ1MmM4MTk1NzQ1OUBn
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "POST /api/v1/user_uploads HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "POST /api/v1/messages HTTP/1.1" 200 None
+DEBUG:root:Succesfully uploaded ICS file
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "POST /api/v1/messages HTTP/1.1" 200 None
+INFO:werkzeug:127.0.0.1 - - [11/Jan/2023 08:57:56] "POST / HTTP/1.1" 200 -
+INFO:werkzeug: * Detected change in '/Users/alex/Documents/GitHub/calendar-bot/zulip_bots/zulip_bots/bots/calendarbot/calendarbot.py', reloading
+INFO:werkzeug: * Restarting with stat
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): recurse.zulipchat.com:443
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "GET /api/v1/server_settings HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "GET /api/v1/users/me HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 141-202-557
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): recurse.zulipchat.com:443
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "GET /api/v1/server_settings HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "GET /api/v1/users/me HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5002
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+INFO:werkzeug: * Restarting with stat
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): recurse.zulipchat.com:443
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "GET /api/v1/server_settings HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "GET /api/v1/users/me HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 141-202-557
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): recurse.zulipchat.com:443
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "GET /api/v1/server_settings HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "GET /api/v1/users/me HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5002
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+INFO:werkzeug: * Restarting with stat
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): recurse.zulipchat.com:443
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "GET /api/v1/server_settings HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "GET /api/v1/users/me HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+DEBUG:urllib3.connectionpool:https://recurse.zulipchat.com:443 "PUT /api/v1/bot_storage HTTP/1.1" 200 None
+WARNING:werkzeug: * Debugger is active!
+INFO:werkzeug: * Debugger PIN: 141-202-557
+INFO:werkzeug: * Detected change in '/Users/alex/Documents/GitHub/calendar-bot/zulip_bots/zulip_bots/bots/calendarbot/calendarbot.py', reloading
+INFO:werkzeug: * Restarting with stat

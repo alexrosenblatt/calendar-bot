@@ -1,32 +1,47 @@
 import logging
-from typing import Any, Dict, List, Optional, Union
+
+import random
 from dataclasses import dataclass
-
-from re import search
 from datetime import datetime, timedelta
-
+from enum import Enum
+from re import search
+from typing import Any, Dict, List, Optional, Union
 
 from ics import Attendee, Calendar, Event
+
+from zulip_bots.bots.calendarbot.googlecalendar import AuthenticationError
+from zulip_bots.bots.calendarbot.googlecalendar import GcalMeeting as GcalMeeting
+from zulip_bots.bots.calendarbot.googlecalendar import authenticate_google
+from zulip_bots.bots.calendarbot.pairingcontent import PAIRING_CONTENT
 from zulip_bots.lib import BotHandler
-from zulip_bots.bots.calendarbot.googlecalendar import (
-    GcalMeeting as GcalMeeting,
-    authenticate_google,
-    AuthenticationError,
-)
 
 
-logging.basicConfig(
-    filename="zulip_bots/zulip_bots/bots/calendarbot/calendarbot.log",
-    encoding="utf-8",
-    level=logging.DEBUG,
-)
-
+logging.basicConfig(filename="calendarbot.log", encoding="utf-8", level=logging.DEBUG, force=True)
+# shortening logging syntax
+log = logging.debug
 
 # TODO: Take this from environment variables in the future
-BOT_REGEX = "(.*\*\*.*|.*bot.*)"
+BOT_REGEX = "(.*\*\*.*|.*bot.*)"  # type: ignore
 TIME_FORMAT = "^(<time).*(>)$"
 DEFAULT_EVENT_DURATION = 30
 VIRTUAL_RC = "https://recurse.rctogether.com/"
+COFFEE_EMOJI = [
+    "🫖",
+    "🍵",
+    "☕",
+    "♨️",
+]
+PAIRING_EMOJI = ["💬", "👥", "💭", "📣"]
+ICEBREAKERS_PATH = "./zulip_bots/zulip_bots/bots/calendarbot/icebreakers.txt"
+
+# load coffee chat questions
+with open(ICEBREAKERS_PATH, "r+") as ice:
+    QUESTIONS = [f.rstrip("/n") for f in ice]
+
+
+class MeetingTypes(Enum):
+    PAIRING = 1
+    COFFEE_CHAT = 2
 
 
 class CalendarBotHandler(object):
@@ -38,7 +53,7 @@ class CalendarBotHandler(object):
     class MeetingDetails:
         name: str
         location: str
-        description: str
+        description: str | None
         meeting_start: datetime
         meeting_end: datetime
         length_minutes: int
@@ -55,30 +70,35 @@ class CalendarBotHandler(object):
             storage.put("starttime", None)
         if not storage.contains("duration"):
             storage.put("duration", 0)
+        if not storage.contains("meeting_type"):
+            storage.put("meeting_type", None)
 
     def usage(self) -> str:
         return (
             "Calendar Bot creates a calendar meeting for all participants on chat. "
             "Enter a Zulip global time `<time` and then a duration in minutes (e.g. 60 for 1 hour). "
             "Default event duration is 30 mins and default email addresses are from user accounts. "
+            "Optionally, append 'coffee' or 'pairing' to customize the meeting description."
         )
 
     def handle_message(self, message: Dict[str, Any], bot_handler: BotHandler) -> None:
+        log(f"Message Body: {message}")
         storage = bot_handler.storage
         confirmation = storage.get("confirmation")
         starttime = storage.get("starttime")
         duration = storage.get("duration")
-
         # TODO: Instantiating Calendar here for now due to bug when trying to move it to init, works but may cause issues in future
         cal = Calendar()
 
         # Parse the initial message containing the event time and duration info
         if confirmation is None and starttime is None:
+            log("Initial message recieved - starting session")
             bot_response = self.parse_first_message(message, bot_handler)
             bot_handler.send_reply(message, bot_response)
 
         # Parse the second message for the meeting info confirmation
         elif confirmation is None and starttime:
+            log("Second message recieved - triggering confirmation step.")
             try:
                 # Q: Passing in values vs another request to bot_handler
                 bot_response = self.parse_second_message(
@@ -87,7 +107,7 @@ class CalendarBotHandler(object):
             except:
                 # TODO: Target more specific errors
                 bot_response = f"Could not parse confirmation message: '{message['content']}'. Please message CalendarBot with 'Y' / 'N' to confirm <time:{starttime}>"
-                logging.exception("Message parsing failed")
+                logging.exception("Confirmation message parsing failed", exc_info=True)
 
             bot_handler.send_reply(message, bot_response)
 
@@ -104,25 +124,44 @@ class CalendarBotHandler(object):
         filtered_args = self.message_content_helper(message)
         num_args = len(filtered_args)
         duration = DEFAULT_EVENT_DURATION
+        log(f"filtered_args:{filtered_args}")
+
+        def set_duration(duration):
+            try:
+                bot_handler.storage.put("duration", int(duration))
+            except:
+                return f"Could not parse duration input {filtered_args[1]}. Enter a Zulip global time `<time` and then a duration in minutes (e.g. 60 for 1 hour)."  # TODO return error with
+
+        def set_meeting_type(meeting_type):
+            try:
+                if meeting_type.lower() == "pairing":
+                    bot_handler.storage.put("meeting_type", MeetingTypes.PAIRING.value)
+                elif meeting_type.lower() == "coffee":
+                    bot_handler.storage.put("meeting_type", MeetingTypes.COFFEE_CHAT.value)
+            except:
+                return f"Could not parse meeting type input: {filtered_args[2]}. Use 'pairing' or 'coffee' to indicate meeting type. "
 
         # Validate args Zulip global time and duration
         if not num_args or filtered_args[0] == "help":
             return self.usage()
         elif filtered_args[0] == "auth":
+            # add google logging in google module
             authenticate_google()
             return "Authenticating Google token..."
-        elif num_args > 2:
-            return f"Expected at most 2 arguments, received {num_args}"
+        elif num_args > 3:
+            return f"Expected at most 3 arguments, received {num_args}. Enter a Zulip global time `<time` and then a duration in minutes (e.g. 60 for 1 hour)."
 
         if not search(TIME_FORMAT, filtered_args[0]):
             return f"Could not parse '{message['content']}'. Please pass in a Zulip global time `<time`"
 
-        try:
-            if num_args == 2:
-                duration = int(filtered_args[1])
-                bot_handler.storage.put("duration", duration)
-        except:
-            return f"Could not parse duration input {filtered_args[1]}"  # TODO return error with
+        if num_args == 2:
+            log(f"Recieved duration argument: {filtered_args}")
+            set_duration(filtered_args[1])
+
+        elif num_args == 3:
+            log(f"Recieved duration and meeting_type argument: {filtered_args}")
+            set_duration(filtered_args[1])
+            set_meeting_type(filtered_args[2])
 
         time = filtered_args[0].replace("<time:", "").replace(">", "")
         bot_handler.storage.put("starttime", time)
@@ -144,10 +183,42 @@ class CalendarBotHandler(object):
         Process confirmation for meeting details in temporary bot_handler storage
         """
 
+        def set_meeting_title() -> tuple[str, str | None]:
+            # extracts names from the message body, excluding the bot
+            recipient_names = [
+                names["full_name"]
+                for names in message["display_recipient"]
+                if not search(BOT_REGEX, names["email"])
+            ]
+
+            log(f"Parsed Recipient names: {recipient_names}")
+
+            recipient_names = ",".join(recipient_names)
+
+            meeting_type = bot_handler.storage.get("meeting_type")
+
+            # alters description based on meeting type, if no meeting type set defaults to a generic coffee like description
+            if meeting_type == MeetingTypes.COFFEE_CHAT.value:
+                emoji = random.choice(COFFEE_EMOJI)
+                meeting_name = f"{emoji} Coffee Chat with {recipient_names} {emoji}"
+                description = f"<b>Ideas for some fun questions to ask in your coffee chat:</b><br>-{random.choice(QUESTIONS)}-{random.choice(QUESTIONS)}-{random.choice(QUESTIONS)}"
+            elif meeting_type == MeetingTypes.PAIRING.value:
+                emoji = random.choice(PAIRING_EMOJI)
+                meeting_name = f"{emoji} Pairing with {recipient_names} {emoji}"
+                description = PAIRING_CONTENT
+            else:
+                emoji = random.choice(PAIRING_EMOJI)
+                meeting_name = f"{emoji}Meeting with {recipient_names}{emoji}"
+                description = f"<b>Ideas for an icebreaker or fun question to ask in your meeting:</b><br>-{random.choice(QUESTIONS)}-{random.choice(QUESTIONS)}-{random.choice(QUESTIONS)}"
+            return meeting_name, description
+
         filtered_args = self.message_content_helper(message)
         confirmation = filtered_args[0]
 
+        name, description = set_meeting_title()
+
         if confirmation == "y":
+            log("Details confirmed by user")
             duration = int(duration)
             meeting_start, meeting_end = self.parse_datetime_input(starttime, duration)
             meeting_details = self.create_meeting_details(
@@ -156,24 +227,28 @@ class CalendarBotHandler(object):
                 message["sender_email"],
                 message["display_recipient"],
                 duration,
+                name=name,
+                description=description,
             )
 
+            # Create and send Google event
+            google_response = self.send_google_event_invite(meeting_details)
             # Create event ics file for download
             self.create_ics_event(meeting_details, cal)
             self.send_event_file(message, bot_handler, cal)
-            # Create Google event
-            google_response = self.send_google_event_invite(meeting_details)
             # Remove event details from storage
             self.clear_storage(bot_handler)
 
             return google_response
 
         elif confirmation == "n":
+            log("Confirmation denied by user")
             self.clear_storage(bot_handler)
 
             return "Got it! I will remove any saved event data."
 
         else:
+            log(f"User confirmation failed: {message}")
             raise TypeError
 
     def parse_datetime_input(self, starttime: str, duration: int) -> tuple[datetime, datetime]:
@@ -193,9 +268,9 @@ class CalendarBotHandler(object):
         sender_email: str,
         recipients: List[dict],
         duration: int,
+        name: str,
+        description: str | None,
     ) -> MeetingDetails:
-        name = "TEST Event Name"
-        description = "TEST Event Description"
 
         # Parse out id and email from recipients
         parsed_recipients = list(
@@ -218,18 +293,24 @@ class CalendarBotHandler(object):
             sender_email=sender_email,
             invitees=invitees,
         )
-
+        log(f"Created meeting details object: {meeting}")
         return meeting
 
     def create_ics_event(self, meeting: MeetingDetails, cal: Calendar) -> None:
         # Append meeting data to Event object
         event = Event()
-        event.name = meeting.name
-        event.location = meeting.location
-        event.description = meeting.description
-        event.begin = meeting.meeting_start
-        event.end = meeting.meeting_end
-        event.organizer = meeting.sender_email
+        try:
+            event.name = meeting.name
+            event.location = meeting.location
+            event.description = meeting.description
+            event.begin = meeting.meeting_start
+            event.end = meeting.meeting_end
+            event.organizer = meeting.sender_email  # type: ignore
+        except ValueError:
+            logging.exception(
+                "ICS creation failed - end and duration are specified at the same time",
+                exc_info=True,
+            )
 
         # Create attendee list
         for invitee in meeting.invitees:
@@ -248,20 +329,25 @@ class CalendarBotHandler(object):
             # Re-opening file due to issue with empty file when performing operation in the same context-manager
             # TODO figure out how to avoid collisions on the same files when multiple users use this @ alex
             with open("my.ics", "r+") as my_file:
-                result = bot_handler.upload_file(my_file)
-                response = f"[Meeting Invite]({result['uri']})."
+                result = bot_handler.upload_file(my_file)  # type: ignore
+                response = f"Here is your ICS file: [Meeting Invite]({result['uri']})."
                 bot_handler.send_reply(message, response)
+                log("Succesfully uploaded ICS file")
                 # erase file before close
                 my_file.truncate(0)
         except:
             # TODO: find/create better error
+            log("ICS file not found")
             raise FileNotFoundError
 
     def send_google_event_invite(self, meeting_details: MeetingDetails) -> str:
         try:
-            GcalMeeting(meeting_details).send_event()
-            return "Google event successfully created!"
+            gmeeting = GcalMeeting(meeting_details)
+            gmeeting.auth_and_create_google_calendar()
+            gmeeting.send_event()
+            return f"{meeting_details.name} at <time:{meeting_details.meeting_start}> successfully created!"
         except AuthenticationError:
+            log("Google meeting not created - Google could not authenticate.")
             return "Google authentication could not be completed. Please reach out to bot owner to reauthenticate."
 
     def clear_storage(self, bot_handler: BotHandler) -> None:
