@@ -29,6 +29,7 @@ TOKEN_FILE = "token.json"
 def authenticate_google():
     # TODO: We need to prevent the authenticate refresh flow from running for end users
     # TODO: write tests for this @Alex
+
     try:
         creds = None
         # The file token.json stores the user's access and refresh tokens, and is
@@ -50,7 +51,9 @@ def authenticate_google():
                 flow = InstalledAppFlow.from_client_secrets_file(CREDS_FILE, SCOPES)
                 creds = flow.run_local_server(port=8080)
             # Save the credentials for the next run
+
             with open(TOKEN_FILE, "w+") as token:
+
                 token.write(creds.to_json())
     except:
         logging.exception("Error occurred during google authentication.")
@@ -72,14 +75,18 @@ class GcalMeeting:
         # add sender email back into invitee list
         self.attendees.append({"email": meeting_details.sender_email})  # TODO test this
 
+
     def auth_and_create_google_calendar(self):
         creds = self.authenticate_with_token()
         self.calendar = build("calendar", "v3", credentials=creds)
+
         self.parsed_details = self.create_gcal_event()
 
     def authenticate_with_token(self):
         try:
+
             creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+
             return creds
         except:
             logging.debug("Cred file cannot be loaded.")
