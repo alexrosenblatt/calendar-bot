@@ -11,19 +11,20 @@ from googleapiclient.errors import HttpError
 
 
 logging.basicConfig(
-    filename="zulip_bots/zulip_bots/bots/calendarbot/calendarbot.log",
+    filename="./zulip_bots/zulip_bots/bots/calendarbot/calendarbot.log",
     encoding="utf-8",
     level=logging.DEBUG,
+    force=True,
 )
 
 
 # If modifying these scopes, delete the file token.json
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
-CREDS_FILE = "./creds.json"
+CREDS_FILE = "./zulip_bots/zulip_bots/bots/calendarbot/creds.json"
 BOT_CALENDAR_ID = (
     "5edeaa7e7808543c6f5b1f64433d135e618cc3cad5d2c2f2df2b452c81957459@group.calendar.google.com"
 )
-TOKEN_FILE = "token.json"
+TOKEN_FILE = "./zulip_bots/zulip_bots/bots/calendarbot/token.json"
 
 
 def authenticate_google():
@@ -35,7 +36,7 @@ def authenticate_google():
         # created automatically when the authorization flow completes for the first
         # time.
         if os.path.exists(TOKEN_FILE):
-            creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+            creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
             logging.debug("Cred token found. Using existing credentials")
         # If there are no (valid) credentials available, let the user log in.
         else:

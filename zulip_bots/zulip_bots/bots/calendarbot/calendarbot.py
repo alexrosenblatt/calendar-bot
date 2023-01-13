@@ -16,7 +16,12 @@ from zulip_bots.bots.calendarbot.pairingcontent import PAIRING_CONTENT
 from zulip_bots.lib import BotHandler
 
 
-logging.basicConfig(filename="calendarbot.log", encoding="utf-8", level=logging.DEBUG, force=True)
+logging.basicConfig(
+    filename="./zulip_bots/zulip_bots/bots/calendarbot/calendarbot.log",
+    encoding="utf-8",
+    level=logging.DEBUG,
+    force=True,
+)
 # shortening logging syntax
 log = logging.debug
 
