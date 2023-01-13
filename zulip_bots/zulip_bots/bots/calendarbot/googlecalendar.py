@@ -50,13 +50,7 @@ def authenticate_google():
                 flow = InstalledAppFlow.from_client_secrets_file(CREDS_FILE, SCOPES)
                 creds = flow.run_local_server(port=8080)
             # Save the credentials for the next run
-<<<<<<< HEAD
-
             with open(TOKEN_FILE, "w+") as token:
-
-=======
-            with open(TOKEN_FILE, "w+") as token:
->>>>>>> 13-add-logic-to-parsing-to-handle-event-name-event-description
                 token.write(creds.to_json())
     except:
         logging.exception("Error occurred during google authentication.")
@@ -78,28 +72,14 @@ class GcalMeeting:
         # add sender email back into invitee list
         self.attendees.append({"email": meeting_details.sender_email})  # TODO test this
 
-<<<<<<< HEAD
-
     def auth_and_create_google_calendar(self):
         creds = self.authenticate_with_token()
         self.calendar = build("calendar", "v3", credentials=creds)
-
-=======
-    def auth_and_create_google_calendar(self):
-        creds = self.authenticate_with_token()
-        self.calendar = build("calendar", "v3", credentials=creds)
->>>>>>> 13-add-logic-to-parsing-to-handle-event-name-event-description
         self.parsed_details = self.create_gcal_event()
 
     def authenticate_with_token(self):
         try:
-<<<<<<< HEAD
-
             creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
-
-=======
-            creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
->>>>>>> 13-add-logic-to-parsing-to-handle-event-name-event-description
             return creds
         except:
             logging.debug("Cred file cannot be loaded.")
